@@ -1,0 +1,13 @@
+{
+  "name": "owner",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "^3.5.3"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "yargs": "^17.7.2"
+  }
+}
