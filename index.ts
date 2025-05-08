@@ -1,7 +1,9 @@
 import * as fs from "node:fs";
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import yaml from 'js-yaml';
+import chalk from 'chalk';
+import { parseConfig} from "./configuration.ts";
+import type { Config} from "./configuration.ts";
 
 const argv = yargs(hideBin(process.argv))
 .option('config', {
@@ -16,67 +18,84 @@ const argv = yargs(hideBin(process.argv))
   describe: 'Path to the folders/files to process',
   type: 'string',
   demandOption: false,
-  default: '.'
 })
+.option('debug', {
+  alias: 'd',
+  describe: 'Debug mode',
+  type: 'boolean',
+  demandOption: false,
+  default: false
+})
+.option('verbose', {
+  alias: 'v',
+  describe: 'Verbose mode (alias for debug)',
+  type: 'boolean',
+  demandOption: false,
+  default: false
+})
+
 .help().argv;
 
 console.log("Script arguments (parsed by yargs):");
 console.log(argv);
 
-if (argv.myOption) {
-  console.log("myOption was provided:", argv.myOption);
+
+const config = parseConfig(argv);
+const regexps = assembleAllRegExp(config);
+
+// if pathToAnalyze is a directory, check all files in it
+if (fs.statSync(config.configuration.path).isDirectory()) {
+  checkAllFiles(config, regexps);
+}
+else {
+  checkFile(config, regexps);
 }
 
-type Config = {
-  configuration?: {
-    path: string;
-    stopFirstError: boolean;
-  };
-  teams?: {
-    name: string;
-    features: string[];
-  }[];
-  features?: {
-    [key: string]: {
-      description: string;
-      files: string[];
-    };
-  };
-}
-
-let configData: Config = {};
-try {
-  const configFile = fs.readFileSync(argv.config, 'utf8');
-  configData = yaml.load(configFile);
-  console.log("\nConfiguration data from", argv.config + ":");
-  console.log(configData);
-} catch (e) {
-  console.error("\nError loading or parsing config file:", argv.config);
-  console.error(e.message);
-}
-
-const regexps = assembleAllRegExp(configData);
-const files = fs.readdirSync(argv.path, { recursive: true });
-
-files.forEach(file => {
-  const regexp = regexps.find(regexp => regexp.test(file));
-  if (!regexp) {
-    console.error(file, "has no owner");
-    if (configData.configuration?.stopFirstError) {
-      process.exit(1);
-    }
-  }
-  else {
-    console.log(file, "has owner");
-  }
-});
-
-
-function assembleAllRegExp(config: Config): RegExp[] {
-  const allRegExp: RegExp[] = [];
+type RegExpMap = {[team:string]: RegExp};
+function assembleAllRegExp(config: Config): RegExpMap {
+  const allRegExp: RegExpMap = {};
   for (const feature of Object.values(config.features)) {
     const featureRegExp = new RegExp(feature.files.join("|") );
-    allRegExp.push(featureRegExp);
+    allRegExp[feature.owner] = featureRegExp;
   }
   return allRegExp;
+}
+
+
+function checkAllFiles(config:Config, regexps: RegExpMap) {
+  const pathToAnalyze = config.configuration.path + '/';
+  const files = fs.readdirSync(pathToAnalyze, { recursive: true });
+
+  files.forEach(file => {
+    const owner = findOwner(regexps, file);
+
+    if (owner === null) {
+      console.error( chalk.red("[X]"), pathToAnalyze+file, "has no owner");
+      if (config.configuration.stopFirstError) {
+        process.exit(1);
+      }
+    }
+    else {
+      console.log(chalk.green("[✓]") , pathToAnalyze+file, "owner:", chalk.blue(owner));
+    }
+  });
+}
+
+function checkFile(config:Config, regexps: RegExpMap) {
+  const owner = findOwner(regexps, config.configuration.path);
+  if (owner === null) {
+    console.error( chalk.red("[X]"), config.configuration.path, "has no owner");
+    process.exit(1);
+  } else {
+    console.log(chalk.green("[✓]") , config.configuration.path, "owner:", chalk.blue(owner));
+  }
+}
+
+function findOwner(regexps: RegExpMap, file: string): string | null {
+  for (const [team, regexp] of Object.entries(regexps)) {
+    if (regexp.test(file)) {
+      return team;
+    }
+  }
+  return null;
 }

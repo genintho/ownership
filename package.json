@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "type": "module",
   "devDependencies": {
+    "@types/node": "^22.15.16",
     "prettier": "^3.5.3"
   },
   "dependencies": {
+    "chalk": "^5.4.1",
     "js-yaml": "^4.1.0",
     "yargs": "^17.7.2"
   }
