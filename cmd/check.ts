@@ -12,28 +12,25 @@ const __dirname = path.dirname(__filename);
 
 export interface CheckOptions {
   config: string;
-  path?: string;
+  path: string;
   debug: boolean;
   verbose: boolean;
 }
 
-export const command = "check";
+export const command = "check <path>";
 export const describe = "Check files for ownership";
 
 export const builder = (yargs: Argv) => {
   return yargs
+    .positional("path", {
+      describe: "Path to the folders/files to process",
+      type: "string",
+    })
     .option("config", {
       alias: "c",
       describe: "Path to the config file",
       type: "string",
       demandOption: false, // Assuming default is handled by parseConfig or main logic
-      default: "./config.yaml",
-    })
-    .option("path", {
-      alias: "p",
-      describe: "Path to the folders/files to process",
-      type: "string",
-      demandOption: true,
     })
     .option("path-todo", {
       alias: "t",
@@ -69,19 +66,8 @@ export const handler = (argv: Arguments<CheckOptions>) => {
   const todos = Todos.read(config);
 
   // Ensure path is available, either from argv or config
-  const analysisPath = argv.path || config.configuration.path;
-  if (!analysisPath) {
-    console.error(
-      chalk.red(
-        "Error: Path to analyze is not specified either via --path or in the config file.",
-      ),
-    );
-    process.exit(1);
-  }
 
-  config.configuration.path = analysisPath; // Ensure config object has the definitive path
-
-  if (fs.statSync(analysisPath).isDirectory()) {
+  if (fs.statSync(config.configuration.path).isDirectory()) {
     checkAllFiles(config, regexps);
   } else {
     checkFile(config, regexps);

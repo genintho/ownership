@@ -4,6 +4,9 @@ import * as fs from "node:fs";
 
 export function read(config:Config){
   const todoFile = config.configuration.pathTodo;
+  if (!fs.existsSync(todoFile)) {
+    return new Todos({});
+  }
   const todoFileContent = fs.readFileSync(todoFile, 'utf8');
   const todos = yaml.load(todoFileContent);
   return new Todos(todos);

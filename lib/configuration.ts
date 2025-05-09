@@ -35,9 +35,12 @@ export function parseConfig(argv: {
 }): Config {
   // @ts-expect-error
   let configData: Config = {};
+
+  const configPath = argv.config || path.resolve(__dirname, "config.yaml");
+
   try {
     const configFile = fs.readFileSync(
-      path.resolve(__dirname, argv.config),
+      configPath,
       "utf8",
     );
     configData = yaml.load(configFile);
@@ -46,6 +49,7 @@ export function parseConfig(argv: {
     console.error(e.message);
     process.exit(1);
   }
+
   configData = configData || {};
   configData.configuration = configData.configuration || {};
 
