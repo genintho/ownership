@@ -1,11 +1,18 @@
 import * as fs from "node:fs";
-import yaml from 'js-yaml';
+import yaml from "js-yaml";
+import { fileURLToPath } from "node:url";
+import * as path from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface Config {
   configuration: {
-    path: string;
-    stopFirstError: boolean;
     debug: boolean;
+    path: string;
+    pathTodo: string;
+    stopFirstError: boolean;
+    updateTodo: boolean;
   };
   teams: {
     name: string;
@@ -13,19 +20,27 @@ export interface Config {
   features: {
     [key: string]: {
       description: string;
-      owner: string;
       files: string[];
+      owner: string;
     };
   };
 }
 
-export function parseConfig(argv:{config:string, path:string, debug:boolean}): Config {
+export function parseConfig(argv: {
+  config: string;
+  path: string;
+  pathTodo?: string;
+  updateTodo?: boolean;
+  debug: boolean;
+}): Config {
   // @ts-expect-error
   let configData: Config = {};
   try {
-    const configFile = fs.readFileSync(argv.config, 'utf8');
+    const configFile = fs.readFileSync(
+      path.resolve(__dirname, argv.config),
+      "utf8",
+    );
     configData = yaml.load(configFile);
-
   } catch (e) {
     console.error("\nError loading or parsing config file:", argv.config);
     console.error(e.message);
@@ -35,7 +50,8 @@ export function parseConfig(argv:{config:string, path:string, debug:boolean}): C
   configData.configuration = configData.configuration || {};
 
   // DEBUG
-  configData.configuration.debug = argv.debug || configData.configuration.debug || false;
+  configData.configuration.debug =
+    argv.debug || configData.configuration.debug || false;
 
   if (configData.configuration.debug) {
     console.debug("\nConfiguration data from", argv.config + ":");
@@ -47,12 +63,22 @@ export function parseConfig(argv:{config:string, path:string, debug:boolean}): C
     pathToAnalyze = pathToAnalyze.slice(0, -1);
   }
 
+  let pathTodo =
+    argv.pathTodo || configData.configuration?.pathTodo || "./.owner-todo.yml";
+  configData.configuration.pathTodo = pathTodo;
+
   configData.configuration.path = pathToAnalyze;
-  configData.configuration.stopFirstError = configData.configuration.stopFirstError || false;
+
+  configData.configuration.stopFirstError =
+    configData.configuration.stopFirstError || false;
+
+  configData.configuration.updateTodo = argv.updateTodo || false;
 
   if (configData.configuration.debug) {
     console.debug("\nFinal Configuration:");
     console.debug(configData);
   }
+
+
   return configData;
 }

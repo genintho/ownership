@@ -1,10 +1,11 @@
 import * as fs from "node:fs";
-import chalk from 'chalk';
-import type { Arguments, Argv } from 'yargs';
-import { parseConfig } from "../configuration.ts";
-import type { Config } from "../configuration.ts";
-import { fileURLToPath } from 'node:url';
+import chalk from "chalk";
+import type { Arguments, Argv } from "yargs";
+import { parseConfig } from "../lib/configuration.ts";
+import type { Config } from "../lib/configuration.ts";
+import { fileURLToPath } from "node:url";
 import * as path from "node:path";
+import * as Todos from "../lib/todos.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,50 +17,65 @@ export interface CheckOptions {
   verbose: boolean;
 }
 
-export const command = 'check';
-export const describe = 'Check files for ownership';
+export const command = "check";
+export const describe = "Check files for ownership";
 
 export const builder = (yargs: Argv) => {
   return yargs
-    .option('config', {
-      alias: 'c',
-      describe: 'Path to the config file',
-      type: 'string',
+    .option("config", {
+      alias: "c",
+      describe: "Path to the config file",
+      type: "string",
       demandOption: false, // Assuming default is handled by parseConfig or main logic
-      default: './config.yaml'
+      default: "./config.yaml",
     })
-    .option('path', {
-      alias: 'p',
-      describe: 'Path to the folders/files to process',
-      type: 'string',
-      demandOption: false, // Path might be optional if config provides a default
+    .option("path", {
+      alias: "p",
+      describe: "Path to the folders/files to process",
+      type: "string",
+      demandOption: true,
     })
-    .option('debug', {
-      alias: 'd',
-      describe: 'Debug mode',
-      type: 'boolean',
-      default: false
+    .option("path-todo", {
+      alias: "t",
+      describe: "Path to the todo file",
+      type: "string",
+      demandOption: false,
+      default: "./.owner-todo.yaml",
     })
-    .option('verbose', {
-      alias: 'v',
-      describe: 'Verbose mode (alias for debug)',
-      type: 'boolean',
-      default: false
+    .option("update-todo", {
+      alias: "u",
+      describe: "Update the todo file",
+      type: "boolean",
+      default: false,
+    })
+    .option("debug", {
+      alias: "d",
+      describe: "Debug mode",
+      type: "boolean",
+      default: false,
+    })
+    .option("quiet", {
+      alias: "q",
+      describe: "Quiet mode",
+      type: "boolean",
+      default: false,
     });
 };
 
 export const handler = (argv: Arguments<CheckOptions>) => {
-  console.log("Script arguments (parsed by yargs for check command):");
-  console.log(argv);
-
   // parseConfig will use argv.config and potentially argv.path if provided
   const config = parseConfig(argv);
   const regexps = assembleAllRegExp(config);
+  const todos = Todos.read(config);
 
   // Ensure path is available, either from argv or config
   const analysisPath = argv.path || config.configuration.path;
   if (!analysisPath) {
-    console.error(chalk.red("Error: Path to analyze is not specified either via --path or in the config file."));
+    console.error(
+      chalk.red(
+        "Error: Path to analyze is not specified either via --path or in the config file.",
+      ),
+    );
     process.exit(1);
   }
 
@@ -70,20 +86,31 @@ export const handler = (argv: Arguments<CheckOptions>) => {
   } else {
     checkFile(config, regexps);
   }
+
+  // if (config.configuration.updateTodo) {
+    // Todos.write(config, todos);
+  // }
 };
 
-type RegExpMap = {[team:string]: RegExp};
+type RegExpMap = { [team: string]: RegExp };
 
 function assembleAllRegExp(config: Config): RegExpMap {
   const allRegExp: RegExpMap = {};
   for (const feature of Object.values(config.features)) {
     // Ensure feature.files is an array and join it
-    const pattern = Array.isArray(feature.files) ? feature.files.join("|") : feature.files;
-    if (pattern) { // Only create RegExp if pattern is not empty
-        const featureRegExp = new RegExp(pattern);
-        allRegExp[feature.owner] = featureRegExp;
+    const pattern = Array.isArray(feature.files)
+      ? feature.files.join("|")
+      : feature.files;
+    if (pattern) {
+      // Only create RegExp if pattern is not empty
+      const featureRegExp = new RegExp(pattern);
+      allRegExp[feature.owner] = featureRegExp;
     } else {
-        console.warn(chalk.yellow(`Warning: No file patterns defined for feature owned by ${feature.owner}`));
+      console.warn(
+        chalk.yellow(
+          `Warning: No file patterns defined for feature owned by ${feature.owner}`,
+        ),
+      );
     }
   }
   return allRegExp;
@@ -98,56 +125,44 @@ function findOwner(regexps: RegExpMap, file: string): string | null {
   return null;
 }
 
-function checkAllFiles(config:Config, regexps: RegExpMap) {
+function checkAllFiles(config: Config, regexps: RegExpMap) {
   const pathToAnalyze = config.configuration.path; // No need to add '/' if path is already correct
   // Ensure trailing slash for directory path when reading
-  const dirPath = pathToAnalyze.endsWith('/') ? pathToAnalyze : pathToAnalyze + '/';
+  const dirPath = pathToAnalyze.endsWith("/")
+    ? pathToAnalyze
+    : pathToAnalyze + "/";
 
-  // readdirSync with recursive option might not be standard on all Node versions or fs-extra.
-  // Sticking to a simple readdirSync for one level or consider a library like glob for deep traversal.
-  // For simplicity, assuming fs.readdirSync can handle recursive or we adapt.
-  // Let's assume for now it's a flat directory scan or a single file,
-  // or that `config.configuration.path` is specific enough.
-  // If recursive is needed and supported by your Node/fs setup:
-  let files: string[] = [];
-  try {
-    files = fs.readdirSync(dirPath, { recursive: true }) as string[]; // Cast if necessary, ensure your Node version supports recursive
-  } catch (err) {
-      console.error(chalk.red(`Error reading directory ${dirPath}:`), err);
-      if (config.configuration.stopFirstError) {
-          process.exit(1);
-      }
-      return;
-  }
+  let files = fs.readdirSync(dirPath, { recursive: true }) as string[];
 
-
-  files.forEach(file => {
-    // readdirSync with recursive: true returns paths relative to dirPath
+  files.forEach((file) => {
     const fullFilePath = dirPath + file;
-    const owner = findOwner(regexps, file); // Match against relative path `file`
+    const owner = findOwner(regexps, file);
 
     if (owner === null) {
-      console.error( chalk.red("[X]"), fullFilePath, "has no owner");
+      console.error(chalk.red("[X]"), fullFilePath, "has no owner");
       if (config.configuration.stopFirstError) {
         process.exit(1);
       }
-    }
-    else {
-      console.log(chalk.green("[✓]") , fullFilePath, "owner:", chalk.blue(owner));
+    } else {
+      console.log(
+        chalk.green("[✓]"),
+        fullFilePath,
+        "owner:",
+        chalk.blue(owner),
+      );
     }
   });
 }
 
-function checkFile(config:Config, regexps: RegExpMap) {
+function checkFile(config: Config, regexps: RegExpMap) {
   const filePath = config.configuration.path;
-  const owner = findOwner(regexps, filePath); // Match against the path itself
+  const owner = findOwner(regexps, filePath);
   if (owner === null) {
-    console.error( chalk.red("[X]"), filePath, "has no owner");
-    // Consider if process.exit(1) is always desired here, or configurable like in checkAllFiles
-    if (config.configuration.stopFirstError !== false) { // Default to true if undefined
-        process.exit(1);
+    console.error(chalk.red("[X]"), filePath, "has no owner");
+    if (config.configuration.stopFirstError !== false) {
+      process.exit(1);
     }
   } else {
-    console.log(chalk.green("[✓]") , filePath, "owner:", chalk.blue(owner));
+    console.log(chalk.green("[✓]"), filePath, "owner:", chalk.blue(owner));
   }
 }
