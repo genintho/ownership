@@ -1,10 +1,10 @@
 import * as fs from "node:fs";
 import chalk from "chalk";
+// @ts-expect-error
 import type { Arguments, Argv } from "yargs";
 import { parseConfig } from "../lib/configuration.ts";
 import type { Config } from "../lib/configuration.ts";
 import * as Todos from "../lib/todos.ts";
-
 
 export interface CheckOptions {
   config: string;
@@ -62,7 +62,7 @@ export const handler = (argv: Arguments<CheckOptions>) => {
   }
 
   // if (config.configuration.updateTodo) {
-    // Todos.write(config, todos);
+  // Todos.write(config, todos);
   // }
 };
 

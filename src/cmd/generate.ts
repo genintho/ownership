@@ -4,6 +4,7 @@ import * as path from "node:path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// @ts-expect-error
 import type { Arguments, Argv } from "yargs";
 
 // Define the type for the arguments of the generate command if it has specific options

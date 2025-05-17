@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import yaml from "js-yaml";
+import { load as YamlLoad } from "js-yaml";
 import { fileURLToPath } from "node:url";
 import * as path from "node:path";
 
@@ -39,12 +39,9 @@ export function parseConfig(argv: {
   const configPath = argv.config || path.resolve(__dirname, "config.yaml");
 
   try {
-    const configFile = fs.readFileSync(
-      configPath,
-      "utf8",
-    );
-    configData = yaml.load(configFile);
-  } catch (e) {
+    const configFile = fs.readFileSync(configPath, "utf8");
+    configData = YamlLoad(configFile) as any;
+  } catch (e: any) {
     console.error("\nError loading or parsing config file:", argv.config);
     console.error(e.message);
     process.exit(1);
@@ -82,7 +79,6 @@ export function parseConfig(argv: {
     console.debug("\nFinal Configuration:");
     console.debug(configData);
   }
-
 
   return configData;
 }
