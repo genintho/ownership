@@ -14,6 +14,7 @@ export interface Config {
 		stopFirstError: boolean;
 		updateTodo: boolean;
 	};
+	exclude: string[];
 	teams: {
 		name: string;
 	}[];
@@ -76,6 +77,10 @@ export function parseConfig(argv: {
 		console.debug("\nFinal Configuration:");
 		console.debug(configData);
 	}
+
+	configData.exclude = configData.exclude || [];
+	configData.teams = configData.teams || {};
+	configData.features = configData.features || {};
 
 	return configData;
 }
