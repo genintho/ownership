@@ -1,16 +1,16 @@
 {
-  "extends": ["oxlint:recommended"],
-  "categories": {
-    "correctness": "error",
-    "suspicious": "warn",
-    "perf": "error",
-    "pedantic": "off",
-    "style": "off",
-    "restriction": "off",
-    "nursery": "off"
-  },
+	"extends": ["oxlint:recommended"],
+	"categories": {
+		"correctness": "error",
+		"suspicious": "warn",
+		"perf": "error",
+		"pedantic": "off",
+		"style": "off",
+		"restriction": "off",
+		"nursery": "off"
+	},
 
-  "rules": {
-    "no-unused-vars": "warn"
-  }
+	"rules": {
+		"no-unused-vars": "warn"
+	}
 }

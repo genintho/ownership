@@ -17,17 +17,17 @@ export const describe = "Generate something (placeholder)";
 
 // Builder function for yargs, to define command-specific options
 export const builder = (yargs: Argv) => {
-  return yargs;
-  // .option('exampleOption', {
-  //   describe: 'An example option for the generate command',
-  //   type: 'string',
-  //   demandOption: true
-  // });
+	return yargs;
+	// .option('exampleOption', {
+	//   describe: 'An example option for the generate command',
+	//   type: 'string',
+	//   demandOption: true
+	// });
 };
 
 // Handler function for the command
 export const handler = (argv: Arguments /* <GenerateOptions> */) => {
-  console.log("Generate command called with args:", argv);
-  // Placeholder for generate command logic
-  // Implement your generation logic here
+	console.log("Generate command called with args:", argv);
+	// Placeholder for generate command logic
+	// Implement your generation logic here
 };
