@@ -39,13 +39,15 @@ export function parseConfig(argv: {
 
 	const configPath = argv.config || path.resolve(__dirname, "config.yaml");
 
+	if (!fs.existsSync(configPath)) {
+		throw new Error(`Configuration file does not exists at '${configPath}'`);
+	}
+
 	try {
 		const configFile = fs.readFileSync(configPath, "utf8");
 		configData = YamlLoad(configFile) as any;
 	} catch (e: any) {
-		console.error("\nError loading or parsing config file:", argv.config);
-		console.error(e.message);
-		process.exit(1);
+		throw new Error("\nError loading or parsing config file: " + e.message);
 	}
 
 	configData = configData || {};
