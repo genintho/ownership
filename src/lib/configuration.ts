@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import { load as YamlLoad } from "js-yaml";
 import { fileURLToPath } from "node:url";
 import * as path from "node:path";
+import { log } from "./log.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,8 +58,8 @@ export function parseConfig(argv: {
 	configData.configuration.debug = argv.debug || configData.configuration.debug || false;
 
 	if (configData.configuration.debug) {
-		console.debug("\nConfiguration data from", argv.config + ":");
-		console.debug(configData);
+		log.debug("\nConfiguration data from", argv.config + ":");
+		log.debug(configData);
 	}
 
 	let pathToAnalyze = argv.path || configData.configuration?.path || "./";
@@ -76,8 +77,8 @@ export function parseConfig(argv: {
 	configData.configuration.updateTodo = argv.updateTodo || false;
 
 	if (configData.configuration.debug) {
-		console.debug("\nFinal Configuration:");
-		console.debug(configData);
+		log.debug("\nFinal Configuration:");
+		log.debug(configData);
 	}
 
 	configData.exclude = configData.exclude || [];

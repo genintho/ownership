@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import * as path from "node:path";
 import { dump as YamlDump } from "js-yaml";
+import { log } from "../lib/log.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,10 +40,10 @@ export const builder = (yargs: Argv) => {
 
 // Handler function for the command
 export const handler = (argv: Arguments /* <GenerateOptions> */) => {
-	console.log(chalk.greenBright("Create a default configuration!"));
+	log.info(chalk.greenBright("Create a default configuration!"));
 
 	if (fs.existsSync(argv.config) && !argv.update) {
-		console.log(chalk.yellowBright("A configuration already exists"));
+		log.info(chalk.yellowBright("A configuration already exists"));
 		return;
 	}
 
@@ -50,5 +51,5 @@ export const handler = (argv: Arguments /* <GenerateOptions> */) => {
 
 	const config = parseConfig(argv);
 	fs.writeFileSync(argv.config, YamlDump(config));
-	console.log(chalk.green("Done"));
+	log.info(chalk.green("Done"));
 };
