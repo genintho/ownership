@@ -20,6 +20,7 @@ export const command = "init";
 export const describe = "Create a basic default configuration";
 
 // Builder function for yargs, to define command-specific options
+/* v8 ignore start */
 export const builder = (yargs: Argv) => {
 	return yargs
 		.option("config", {
@@ -34,6 +35,7 @@ export const builder = (yargs: Argv) => {
 			type: "bool",
 		});
 };
+/* v8 ignore stop */
 
 // Handler function for the command
 export const handler = (argv: Arguments /* <GenerateOptions> */) => {

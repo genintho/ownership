@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`parseConfig > generate a default config 1`] = `
+{
+  "configuration": {
+    "debug": true,
+    "path": ".",
+    "pathTodo": "./.owner-todo.yml",
+    "stopFirstError": false,
+    "updateTodo": false,
+  },
+  "exclude": [],
+  "features": {},
+  "teams": {},
+}
+`;

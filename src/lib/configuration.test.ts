@@ -41,4 +41,12 @@ describe("parseConfig", () => {
 
 		expect(() => parseConfig(argv)).toThrowError(/\nError loading or parsing config file: /);
 	});
+
+	it("generate a default config", () => {
+		const p = path.join(testDir, "conf.yaml");
+		fs.writeFileSync(p, "{}");
+
+		const conf = parseConfig({ config: p, path: "./", debug: true });
+		expect(conf).toMatchSnapshot();
+	});
 });
