@@ -3,12 +3,8 @@ import chalk from "chalk";
 import type { Arguments, Argv } from "yargs";
 import { parseConfig } from "../lib/configuration.ts";
 import type { Config } from "../lib/configuration.ts";
-import { fileURLToPath } from "node:url";
-import * as path from "node:path";
 import * as Todos from "../lib/todos.ts";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export interface CheckOptions {
   config: string;
@@ -18,7 +14,7 @@ export interface CheckOptions {
 }
 
 export const command = "check <path>";
-export const describe = "Check files for ownership";
+export const describe = "Check that files are owned";
 
 export const builder = (yargs: Argv) => {
   return yargs
@@ -27,35 +23,27 @@ export const builder = (yargs: Argv) => {
       type: "string",
     })
     .option("config", {
-      alias: "c",
       describe: "Path to the config file",
       type: "string",
-      demandOption: false, // Assuming default is handled by parseConfig or main logic
+      demandOption: false,
     })
     .option("path-todo", {
-      alias: "t",
       describe: "Path to the todo file",
       type: "string",
       demandOption: false,
       default: "./.owner-todo.yaml",
     })
     .option("update-todo", {
-      alias: "u",
       describe: "Update the todo file",
       type: "boolean",
-      default: false,
     })
     .option("debug", {
-      alias: "d",
       describe: "Debug mode",
       type: "boolean",
-      default: false,
     })
     .option("quiet", {
-      alias: "q",
       describe: "Quiet mode",
       type: "boolean",
-      default: false,
     });
 };
 
