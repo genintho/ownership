@@ -11,3 +11,10 @@ vi.mock("./src/lib/log.ts", () => {
 		},
 	};
 });
+
+vi.mock("node:fs", async () => {
+	const memfs = await vi.importActual("memfs");
+
+	// Support both `import fs from "fs"` and "import { readFileSync } from "fs"`
+	return { default: memfs.fs, ...memfs.fs };
+});
