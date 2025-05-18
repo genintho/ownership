@@ -70,3 +70,32 @@ describe("computePathToTest", () => {
 		expect(result).toEqual([config.pathAbs]);
 	});
 });
+
+
+describe("assembleAllRegExp", () => {
+	it("empty feature returns empty map", () => {
+		const config = new Config(
+			{ path: "./test-dir", config: "" },
+			{}
+		);
+		const result = cmd.assembleAllRegExp(config);
+		expect(result).toEqual({});
+	});
+	it("feature with files returns map with file regexps", () => {
+		const config = new Config(
+			{ path: "./test-dir", config: "" },
+			{
+				features: {
+					donut: {
+						files: ["bob.png", "something/.*", "something/else.txt"],
+						owner: "donut",
+					},
+				},
+			}
+		);
+		const result = cmd.assembleAllRegExp(config);
+		expect(result).toEqual({
+			donut: new RegExp("bob.png|something/.*|something/else.txt"),
+		});
+	});
+});

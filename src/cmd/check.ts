@@ -105,16 +105,12 @@ class OErrorFileNoOwner extends OErrors {
 
 type RegExpMap = { [team: string]: RegExp };
 
-function assembleAllRegExp(config: Config): RegExpMap {
+export function assembleAllRegExp(config: Config): RegExpMap {
 	const allRegExp: RegExpMap = {};
 	for (const feature of Object.values(config.features)) {
-		const pattern = Array.isArray(feature.files) ? feature.files.join("|") : feature.files;
-		if (pattern) {
-			const featureRegExp = new RegExp(pattern);
-			allRegExp[feature.owner] = featureRegExp;
-		} else {
-			log.warn(chalk.yellow(`Warning: No file patterns defined for feature owned by ${feature.owner}`));
-		}
+		const pattern = feature.files.join("|");
+		const featureRegExp = new RegExp(pattern);
+		allRegExp[feature.owner] = featureRegExp;
 	}
 	return allRegExp;
 }
