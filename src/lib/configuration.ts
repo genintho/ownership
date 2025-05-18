@@ -7,36 +7,16 @@ import { log } from "./log.ts";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export interface Config {
-	configuration: {
-		debug: boolean;
-		path: string;
-		pathTodo: string;
-		stopFirstError: boolean;
-		updateTodo: boolean;
-	};
-	exclude: string[];
-	teams: {
-		name: string;
-	}[];
-	features: {
-		[key: string]: {
-			description: string;
-			files: string[];
-			owner: string;
-		};
-	};
-}
-
-export function parseConfig(argv: {
+type argvType = {
 	config: string;
 	path: string;
-	pathTodo?: string;
-	updateTodo?: boolean;
+	pathBaseline?: string;
 	debug?: boolean;
-}): Config {
+}
+
+export function parseConfig(argv: argvType): Config {
 	// @ts-expect-error
-	let configData: Config = {};
+	let configFileContent: Config = {};
 
 	const configPath = argv.config || path.resolve(__dirname, "config.yaml");
 
@@ -46,44 +26,71 @@ export function parseConfig(argv: {
 
 	try {
 		const configFile = fs.readFileSync(configPath, "utf8");
-		configData = YamlLoad(configFile) as any;
+		configFileContent = YamlLoad(configFile) as any;
 	} catch (e: any) {
 		throw new Error("\nError loading or parsing config file: " + e.message);
 	}
 
-	configData = configData || {};
-	configData.configuration = configData.configuration || {};
+	const config = new Config(argv,configFileContent);
 
-	// DEBUG
-	configData.configuration.debug = argv.debug || configData.configuration.debug || false;
-
-	if (configData.configuration.debug) {
-		log.debug("\nConfiguration data from", argv.config + ":");
-		log.debug(configData);
+	if (configFileContent.debug) {
+		log.debug("\nConfiguration from argv", JSON.stringify(argv));
+		log.debug("\nConfiguration from config file", JSON.stringify(configFileContent));
+		log.debug("\nFinal Configuration ", config.toJSON());
 	}
 
-	let pathToAnalyze = argv.path || configData.configuration?.path || "./";
-	if (pathToAnalyze.endsWith("/")) {
-		pathToAnalyze = pathToAnalyze.slice(0, -1);
+	return config;
+}
+
+
+
+export class Config {
+	public readonly debug;
+	public readonly path: string;
+	public readonly pathBaseline: string;
+	public readonly stopFirstError: boolean;
+
+	public readonly exclude: string[];
+	public readonly teams: {name: string;}[];
+	public readonly features: {
+		[key: string]: {
+			description: string;
+			files: string[];
+			owner: string;
+		};
+	};
+
+	constructor(argv:argvType, fileData:any){
+		this.debug = argv.debug || fileData.configuration.debug || false;
+
+		let pathToAnalyze = argv.path || fileData.configuration?.path || "./";
+		if (pathToAnalyze.endsWith("/")) {
+			pathToAnalyze = pathToAnalyze.slice(0, -1);
+		}
+
+		this.pathBaseline = argv.pathBaseline || fileData.configuration?.basepathBaselineline || "./.owner-todo.yml";
+
+		this.path = pathToAnalyze;
+
+		this.stopFirstError = fileData.configuration?.stopFirstError || false;
+
+
+		this.exclude = fileData.exclude || [];
+		this.teams = fileData.teams || {};
+		this.features = fileData.features || {};
 	}
 
-	let pathTodo = argv.pathTodo || configData.configuration?.pathTodo || "./.owner-todo.yml";
-	configData.configuration.pathTodo = pathTodo;
-
-	configData.configuration.path = pathToAnalyze;
-
-	configData.configuration.stopFirstError = configData.configuration.stopFirstError || false;
-
-	configData.configuration.updateTodo = argv.updateTodo || false;
-
-	if (configData.configuration.debug) {
-		log.debug("\nFinal Configuration:");
-		log.debug(configData);
+	toJSON(){
+		return {
+			configuration: {
+				path: this.path,
+				pathBaseline: this.pathBaseline,
+				stopFirstError: this.stopFirstError,
+				debug: this.debug,
+			},
+			exclude: this.exclude,
+			teams: this.teams,
+			features: this.features
+		}
 	}
-
-	configData.exclude = configData.exclude || [];
-	configData.teams = configData.teams || {};
-	configData.features = configData.features || {};
-
-	return configData;
 }

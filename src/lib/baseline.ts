@@ -2,25 +2,25 @@ import type { Config } from "./configuration.ts";
 import { dump as YamlDump, load as YamlLoad } from "js-yaml";
 import * as fs from "node:fs";
 
-export function read(config: Config) {
-	const todoFile = config.configuration.pathTodo;
+export function initialize(config: Config) {
+	const todoFile = config.pathBaseline;
 	if (!fs.existsSync(todoFile)) {
-		return new Todos({});
+		return new Baseline({});
 	}
 	const todoFileContent = fs.readFileSync(todoFile, "utf8");
 	const todos = YamlLoad(todoFileContent);
-	return new Todos(todos);
+	return new Baseline(todos);
 }
 
-export function write(config: Config, todos: Todos) {
-	if (!todos.hasChanged) {
+export function write(config: Config, baseline: Baseline) {
+	if (!baseline.hasChanged) {
 		return;
 	}
-	const todoFile = config.configuration.pathTodo;
-	fs.writeFileSync(todoFile, YamlDump(todos.toJSON()));
+	const todoFile = config.pathBaseline;
+	fs.writeFileSync(todoFile, YamlDump(baseline.toJSON()));
 }
 
-export class Todos {
+export class Baseline {
 	readonly version: number;
 	private readonly files: Set<string>;
 	private changed: boolean;
