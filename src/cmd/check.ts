@@ -61,6 +61,9 @@ export const handler = (argv: Arguments<CheckOptions>) => {
 
 	if (errors.length > 0) {
 		log.error(chalk.red("[X]"), "Found errors");
+		for (const error of errors) {
+			log.error("  ", chalk.red("[X]"), error.message());
+		}
 		process.exit(1);
 	}
 	log.info(chalk.green("[✓]"), "No errors found");
@@ -98,8 +101,10 @@ class OErrors {
 	}
 }
 class OErrorFileNoOwner extends OErrors {
-	constructor(public readonly filePath: string) {
+	public readonly filePath: string;
+	constructor(filePath: string) {
 		super();
+		this.filePath = filePath;
 	}
 	message(): string {
 		return this.filePath + " has no owner";
