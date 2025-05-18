@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, afterAll, vi } from "vitest";
+import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { parseConfig } from "./configuration.ts";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";

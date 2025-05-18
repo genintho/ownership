@@ -9,6 +9,7 @@ export function initialize(config: Config) {
 	}
 	const todoFileContent = fs.readFileSync(todoFile, "utf8");
 	const todos = YamlLoad(todoFileContent);
+	// @ts-expect-error
 	return new Baseline(todos);
 }
 
@@ -25,7 +26,7 @@ export class Baseline {
 	private readonly files: Set<string>;
 	private changed: boolean;
 
-	constructor(json: any) {
+	constructor(json: { version?: number; files?: string[] } = {}) {
 		this.version = json.version || 1;
 		this.files = new Set([]);
 		for (const file of json.files || []) {

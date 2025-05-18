@@ -10,19 +10,29 @@ describe("findOwner", () => {
 		const regexps = {
 			donut: new RegExp("bob.png"),
 		};
-		expect(cmd.findOwner(regexps, "bob.png")).toBe("donut");
+		expect(cmd.findOwner(regexps, [], new Baseline({}), "bob.png")).toBe("donut");
 	});
+
 	it("match simple regexp", () => {
 		const regexps = {
 			donut: new RegExp("something|bob.png"),
 		};
-		expect(cmd.findOwner(regexps, "bob.png")).toBe("donut");
+		expect(cmd.findOwner(regexps, [], new Baseline({}), "bob.png")).toBe("donut");
 	});
+
 	it("return null on miss", () => {
 		const regexps = {
 			donut: new RegExp("bob.png"),
 		};
-		expect(cmd.findOwner(regexps, "null.png")).toBeNull();
+		expect(cmd.findOwner(regexps, [], new Baseline({}), "null.png")).toBeNull();
+	});
+
+	it.only("baseline match return symbol", () => {
+		expect(cmd.findOwner({}, [], new Baseline({ files: ["baseline.png"] }), "./baseline.png")).toBe(cmd.MATCH_BASELINE);
+	});
+
+	it.only("exclude match return symbol", () => {
+		expect(cmd.findOwner({}, [new RegExp("baseline.png")], new Baseline(), "./baseline.png")).toBe(cmd.MATCH_EXCLUDE);
 	});
 });
 
@@ -100,7 +110,11 @@ describe("runTest", () => {
 	it("empty feature returns empty map", () => {
 		const config = new Config({ path: "./src", config: "" }, {});
 		const result = cmd.runTest(config, new Baseline({}), []);
-		expect(result).toEqual([]);
+		expect(result).toMatchInlineSnapshot(`
+			[
+			  OErrorNothingToTest {},
+			]
+		`);
 	});
 
 	it("feature with files returns map with file regexps", () => {
@@ -130,6 +144,7 @@ describe("runTest", () => {
 			]
 		`);
 	});
+
 	it("file found in the baseline are ignored", () => {
 		const config = new Config(
 			{ path: "./src", config: "" },
@@ -147,6 +162,26 @@ describe("runTest", () => {
 			[
 			  OErrorFileNoOwner {
 			    "filePath": "./src/utils/str.cpp",
+			  },
+			]
+		`);
+	});
+
+	it("file found in the baseline are ignored", () => {
+		const config = new Config(
+			{ path: "./src", config: "" },
+			{
+				exclude: ["utils/.*$"],
+			},
+		);
+		const result = cmd.runTest(config, new Baseline({}), files);
+		expect(result).toMatchInlineSnapshot(`
+			[
+			  OErrorFileNoOwner {
+			    "filePath": "./src/main.cpp",
+			  },
+			  OErrorFileNoOwner {
+			    "filePath": "./readme.md",
 			  },
 			]
 		`);

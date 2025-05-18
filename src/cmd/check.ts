@@ -69,19 +69,26 @@ export const handler = (argv: Arguments<CheckOptions>) => {
 	log.info(chalk.green("[✓]"), "No errors found");
 };
 
+export const MATCH_BASELINE = Symbol("MATCH_BASELINE");
+export const MATCH_EXCLUDE = Symbol("MATCH_EXCLUDE");
+
 export function runTest(config: Config, baseline: Baseline, filesPathToTest: string[]): OErrors[] {
+	if (filesPathToTest.length === 0) {
+		return [new OErrorNothingToTest()];
+	}
+
 	const errors: OErrors[] = [];
 	const regexps = assembleAllRegExp(config);
 	for (const fullFilePath of filesPathToTest) {
-		const owner = findOwner(regexps, fullFilePath);
+		const owner = findOwner(regexps, config.exclude, baseline, fullFilePath);
 
 		if (owner === null) {
-			if (baseline.check(fullFilePath)) {
-				log.info(chalk.grey("[✓]"), fullFilePath, "is in the baseline");
-			} else {
-				log.error(chalk.red("[X]"), fullFilePath, "has no owner");
-				errors.push(new OErrorFileNoOwner(fullFilePath));
-			}
+			log.error(chalk.red("[X]"), fullFilePath, "has no owner");
+			errors.push(new OErrorFileNoOwner(config.pathAbs, fullFilePath));
+		} else if (owner === MATCH_EXCLUDE) {
+			log.info(chalk.grey("[✓]"), fullFilePath, "is excluded");
+		} else if (owner === MATCH_BASELINE) {
+			log.info(chalk.grey("[✓]"), fullFilePath, "is in the baseline");
 		} else {
 			log.info(chalk.green("[✓]"), fullFilePath, "owner:", chalk.blue(owner));
 		}
@@ -102,9 +109,9 @@ class OErrors {
 }
 class OErrorFileNoOwner extends OErrors {
 	public readonly filePath: string;
-	constructor(filePath: string) {
+	constructor(root: string, filePath: string) {
 		super();
-		this.filePath = filePath;
+		this.filePath = filePath.replace(root, ".");
 	}
 	message(): string {
 		return this.filePath + " has no owner";
@@ -140,7 +147,22 @@ export function computePathToTest(config: Config): string[] {
 	return [config.pathAbs];
 }
 
-export function findOwner(regexps: RegExpMap, file: string): string | null {
+export function findOwner(
+	regexps: RegExpMap,
+	excludeList: RegExp[],
+	baseline: Baseline,
+	file: string,
+): string | null | typeof MATCH_BASELINE | typeof MATCH_EXCLUDE {
+	if (baseline.check(file)) {
+		return MATCH_BASELINE;
+	}
+
+	for (const exclude of excludeList) {
+		if (exclude.test(file)) {
+			return MATCH_EXCLUDE;
+		}
+	}
+
 	for (const [team, regexp] of Object.entries(regexps)) {
 		if (regexp.test(file)) {
 			return team;

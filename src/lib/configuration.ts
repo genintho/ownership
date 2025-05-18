@@ -50,7 +50,7 @@ export class Config {
 	public readonly pathBaseline: string;
 	public readonly stopFirstError: boolean;
 
-	public readonly exclude: string[];
+	public readonly exclude: RegExp[];
 	public readonly teams: { name: string }[];
 	public readonly features: {
 		[key: string]: {
@@ -73,7 +73,8 @@ export class Config {
 
 		this.pathBaseline = argv.pathBaseline || fileData.configuration?.basepathBaselineline || "./.owner-todo.yml";
 		this.stopFirstError = fileData.configuration?.stopFirstError || false;
-		this.exclude = fileData.exclude || [];
+		// @TODO detect if not array and log error is it is the case
+		this.exclude = (fileData.exclude || []).map((e: string) => new RegExp(e));
 		this.teams = fileData.teams || {};
 		this.features = fileData.features || {};
 	}
