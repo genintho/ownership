@@ -12,7 +12,7 @@ type argvType = {
 	path: string;
 	pathBaseline?: string;
 	debug?: boolean;
-}
+};
 
 export function parseConfig(argv: argvType): Config {
 	// @ts-expect-error
@@ -31,7 +31,7 @@ export function parseConfig(argv: argvType): Config {
 		throw new Error("\nError loading or parsing config file: " + e.message);
 	}
 
-	const config = new Config(argv,configFileContent);
+	const config = new Config(argv, configFileContent);
 
 	if (configFileContent.debug) {
 		log.debug("\nConfiguration from argv", JSON.stringify(argv));
@@ -42,8 +42,6 @@ export function parseConfig(argv: argvType): Config {
 	return config;
 }
 
-
-
 export class Config {
 	public readonly debug;
 	public readonly path: string;
@@ -51,7 +49,7 @@ export class Config {
 	public readonly stopFirstError: boolean;
 
 	public readonly exclude: string[];
-	public readonly teams: {name: string;}[];
+	public readonly teams: { name: string }[];
 	public readonly features: {
 		[key: string]: {
 			description: string;
@@ -60,7 +58,7 @@ export class Config {
 		};
 	};
 
-	constructor(argv:argvType, fileData:any){
+	constructor(argv: argvType, fileData: any) {
 		this.debug = argv.debug || fileData.configuration.debug || false;
 
 		let pathToAnalyze = argv.path || fileData.configuration?.path || "./";
@@ -74,13 +72,12 @@ export class Config {
 
 		this.stopFirstError = fileData.configuration?.stopFirstError || false;
 
-
 		this.exclude = fileData.exclude || [];
 		this.teams = fileData.teams || {};
 		this.features = fileData.features || {};
 	}
 
-	toJSON(){
+	toJSON() {
 		return {
 			configuration: {
 				path: this.path,
@@ -90,7 +87,7 @@ export class Config {
 			},
 			exclude: this.exclude,
 			teams: this.teams,
-			features: this.features
-		}
+			features: this.features,
+		};
 	}
 }

@@ -66,7 +66,6 @@ export const handler = (argv: Arguments<CheckOptions>) => {
 	log.info(chalk.green("[✓]"), "No errors found");
 };
 
-
 function runTest(config: Config, regexps: RegExpMap, baseline: Baseline, filesPathToTest: string[]): OErrors[] {
 	const errors: OErrors[] = [];
 
@@ -89,14 +88,12 @@ function runTest(config: Config, regexps: RegExpMap, baseline: Baseline, filesPa
 	return errors;
 }
 
-class OErrors{}
+class OErrors {}
 class OErrorFileNoOwner extends OErrors {
 	constructor(public readonly filePath: string) {
 		super();
 	}
-
 }
-
 
 type RegExpMap = { [team: string]: RegExp };
 
@@ -114,7 +111,6 @@ function assembleAllRegExp(config: Config): RegExpMap {
 	return allRegExp;
 }
 
-
 function computePathToTest(config: Config): string[] {
 	if (fs.statSync(config.path).isDirectory()) {
 		const pathToAnalyze = config.path;
@@ -122,9 +118,8 @@ function computePathToTest(config: Config): string[] {
 		let files = fs.readdirSync(dirPath, { recursive: true }) as string[];
 		return files.map((file) => dirPath + file);
 	}
-	return [config.path]
+	return [config.path];
 }
-
 
 function findOwner(regexps: RegExpMap, file: string): string | null {
 	for (const [team, regexp] of Object.entries(regexps)) {
