@@ -27,12 +27,17 @@ export class Baseline {
 
 	constructor(json: any) {
 		this.version = json.version || 1;
-		this.files = new Set(json.files || []);
-
+		this.files = new Set([]);
+		for (const file of json.files || []) {
+			this.add(file);
+		}
 		this.changed = false;
 	}
 
 	add(file: string) {
+		if (!file.startsWith("./")) {
+			file = "./" + file;
+		}
 		this.files.add(file);
 		this.changed = true;
 	}

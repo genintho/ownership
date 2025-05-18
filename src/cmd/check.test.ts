@@ -130,4 +130,25 @@ describe("runTest", () => {
 			]
 		`);
 	});
+	it("file found in the baseline are ignored", () => {
+		const config = new Config(
+			{ path: "./src", config: "" },
+			{
+				features: {
+					billing: {
+						files: [".*/tax.cpp", "./src/main.cpp"],
+						owner: "donut",
+					},
+				},
+			},
+		);
+		const result = cmd.runTest(config, new Baseline({ files: ["readme.md"] }), files);
+		expect(result).toMatchInlineSnapshot(`
+			[
+			  OErrorFileNoOwner {
+			    "filePath": "./src/utils/str.cpp",
+			  },
+			]
+		`);
+	});
 });

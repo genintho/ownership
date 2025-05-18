@@ -73,8 +73,12 @@ export function runTest(config: Config, baseline: Baseline, filesPathToTest: str
 		const owner = findOwner(regexps, fullFilePath);
 
 		if (owner === null) {
-			log.error(chalk.red("[X]"), fullFilePath, "has no owner");
-			errors.push(new OErrorFileNoOwner(fullFilePath));
+			if (baseline.check(fullFilePath)) {
+				log.info(chalk.grey("[✓]"), fullFilePath, "is in the baseline");
+			} else {
+				log.error(chalk.red("[X]"), fullFilePath, "has no owner");
+				errors.push(new OErrorFileNoOwner(fullFilePath));
+			}
 		} else {
 			log.info(chalk.green("[✓]"), fullFilePath, "owner:", chalk.blue(owner));
 		}
