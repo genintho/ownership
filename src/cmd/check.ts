@@ -53,12 +53,11 @@ export const builder = (yargs: Argv) => {
 
 export const handler = (argv: Arguments<CheckOptions>) => {
 	const config = parseConfig(argv);
-	const regexps = assembleAllRegExp(config);
 	const baseline = initializeBaseline(config);
 
 	const filesPathToTest = computePathToTest(config);
 
-	const errors = runTest(config, regexps, baseline, filesPathToTest);
+	const errors = runTest(config, baseline, filesPathToTest);
 
 	if (errors.length > 0) {
 		log.error(chalk.red("[X]"), "Found errors");
@@ -67,9 +66,9 @@ export const handler = (argv: Arguments<CheckOptions>) => {
 	log.info(chalk.green("[✓]"), "No errors found");
 };
 
-function runTest(config: Config, regexps: RegExpMap, baseline: Baseline, filesPathToTest: string[]): OErrors[] {
+export function runTest(config: Config, baseline: Baseline, filesPathToTest: string[]): OErrors[] {
 	const errors: OErrors[] = [];
-
+	const regexps = assembleAllRegExp(config);
 	for (const fullFilePath of filesPathToTest) {
 		const owner = findOwner(regexps, fullFilePath);
 
@@ -103,6 +102,12 @@ class OErrorFileNoOwner extends OErrors {
 	}
 }
 
+class OErrorNothingToTest extends OErrors {
+	message(): string {
+		return "Nothing to test";
+	}
+}
+
 type RegExpMap = { [team: string]: RegExp };
 
 export function assembleAllRegExp(config: Config): RegExpMap {
@@ -117,9 +122,10 @@ export function assembleAllRegExp(config: Config): RegExpMap {
 
 export function computePathToTest(config: Config): string[] {
 	if (fs.statSync(config.path).isDirectory()) {
-		let files = fs.readdirSync(config.pathAbs, { recursive: true, withFileTypes: true })
+		let files = fs
+			.readdirSync(config.pathAbs, { recursive: true, withFileTypes: true })
 			.filter((file) => file.isFile())
-			.map((file) => path.join(file.path , file.name));
+			.map((file) => path.join(file.path, file.name));
 		return files;
 	}
 	return [config.pathAbs];
