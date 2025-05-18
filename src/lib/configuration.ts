@@ -45,6 +45,8 @@ export function parseConfig(argv: argvType): Config {
 export class Config {
 	public readonly debug;
 	public readonly path: string;
+	public readonly pathAbs: string;
+	public readonly pathBasename: string;
 	public readonly pathBaseline: string;
 	public readonly stopFirstError: boolean;
 
@@ -59,19 +61,18 @@ export class Config {
 	};
 
 	constructor(argv: argvType, fileData: any) {
-		this.debug = argv.debug || fileData.configuration.debug || false;
+		this.debug = argv.debug || fileData.configuration?.debug || false;
 
 		let pathToAnalyze = argv.path || fileData.configuration?.path || "./";
 		if (pathToAnalyze.endsWith("/")) {
 			pathToAnalyze = pathToAnalyze.slice(0, -1);
 		}
+		this.path = pathToAnalyze;
+		this.pathAbs = path.resolve(this.path);
+		this.pathBasename = path.basename(this.pathAbs);
 
 		this.pathBaseline = argv.pathBaseline || fileData.configuration?.basepathBaselineline || "./.owner-todo.yml";
-
-		this.path = pathToAnalyze;
-
 		this.stopFirstError = fileData.configuration?.stopFirstError || false;
-
 		this.exclude = fileData.exclude || [];
 		this.teams = fileData.teams || {};
 		this.features = fileData.features || {};

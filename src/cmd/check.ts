@@ -6,6 +6,7 @@ import { parseConfig } from "../lib/configuration.ts";
 import type { Config } from "../lib/configuration.ts";
 import { initialize as initializeBaseline, type Baseline } from "../lib/baseline.ts";
 import { log } from "../lib/log.ts";
+import * as path from "path";
 
 export interface CheckOptions {
 	config: string;
@@ -88,10 +89,17 @@ function runTest(config: Config, regexps: RegExpMap, baseline: Baseline, filesPa
 	return errors;
 }
 
-class OErrors {}
+class OErrors {
+	message(): string {
+		throw new Error("Must be implemented");
+	}
+}
 class OErrorFileNoOwner extends OErrors {
 	constructor(public readonly filePath: string) {
 		super();
+	}
+	message(): string {
+		return this.filePath + " has no owner";
 	}
 }
 
@@ -111,17 +119,17 @@ function assembleAllRegExp(config: Config): RegExpMap {
 	return allRegExp;
 }
 
-function computePathToTest(config: Config): string[] {
+export function computePathToTest(config: Config): string[] {
 	if (fs.statSync(config.path).isDirectory()) {
-		const pathToAnalyze = config.path;
-		const dirPath = pathToAnalyze.endsWith("/") ? pathToAnalyze : pathToAnalyze + "/";
-		let files = fs.readdirSync(dirPath, { recursive: true }) as string[];
-		return files.map((file) => dirPath + file);
+		let files = fs.readdirSync(config.pathAbs, { recursive: true, withFileTypes: true })
+			.filter((file) => file.isFile())
+			.map((file) => path.join(file.path , file.name));
+		return files;
 	}
-	return [config.path];
+	return [config.pathAbs];
 }
 
-function findOwner(regexps: RegExpMap, file: string): string | null {
+export function findOwner(regexps: RegExpMap, file: string): string | null {
 	for (const [team, regexp] of Object.entries(regexps)) {
 		if (regexp.test(file)) {
 			return team;
