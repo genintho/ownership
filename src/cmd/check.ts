@@ -8,6 +8,7 @@ import { initialize as initializeBaseline, type Baseline } from "../lib/baseline
 import { log } from "../lib/log.ts";
 import * as path from "path";
 import { computePathToTest } from "../lib/file-utils.ts";
+import { OErrors, OErrorFileNoOwner, OErrorNothingToTest } from "../lib/errors.ts";
 
 export interface CheckOptions {
 	config: string;
@@ -101,28 +102,6 @@ export function runTest(config: Config, baseline: Baseline, filesPathToTest: str
 	}
 
 	return errors;
-}
-
-class OErrors {
-	message(): string {
-		throw new Error("Must be implemented");
-	}
-}
-class OErrorFileNoOwner extends OErrors {
-	public readonly filePath: string;
-	constructor(root: string, filePath: string) {
-		super();
-		this.filePath = filePath.replace(root, ".");
-	}
-	message(): string {
-		return this.filePath + " has no owner";
-	}
-}
-
-class OErrorNothingToTest extends OErrors {
-	message(): string {
-		return "Nothing to test";
-	}
 }
 
 type RegExpMap = { [team: string]: RegExp };
