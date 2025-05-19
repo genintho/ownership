@@ -3,6 +3,7 @@ import { load as YamlLoad } from "js-yaml";
 import { fileURLToPath } from "node:url";
 import * as path from "node:path";
 import { log } from "./log.ts";
+import { OErrorNoConfig } from "./errors.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,7 +22,7 @@ export function parseConfig(argv: argvType): Config {
 	const configPath = argv.config || path.resolve(__dirname, "config.yaml");
 
 	if (!fs.existsSync(configPath)) {
-		throw new Error(`Configuration file does not exists at '${configPath}'`);
+		throw new OErrorNoConfig();
 	}
 
 	try {

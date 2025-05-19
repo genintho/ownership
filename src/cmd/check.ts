@@ -1,4 +1,3 @@
-import * as fs from "node:fs";
 import chalk from "chalk";
 // @ts-expect-error
 import type { Arguments, Argv } from "yargs";
@@ -6,9 +5,9 @@ import { parseConfig } from "../lib/configuration.ts";
 import type { Config } from "../lib/configuration.ts";
 import { initialize as initializeBaseline, type Baseline } from "../lib/baseline.ts";
 import { log } from "../lib/log.ts";
-import * as path from "path";
 import { computePathToTest } from "../lib/file-utils.ts";
 import { OErrors, OErrorFileNoOwner, OErrorNothingToTest } from "../lib/errors.ts";
+import { configOptions } from "../lib/cmdHelpers.ts";
 
 export interface CheckOptions {
 	config: string;
@@ -23,34 +22,10 @@ export const command = "check <path>";
 export const describe = "Check that files are owned";
 
 export const builder = (yargs: Argv) => {
-	return yargs
-		.positional("path", {
-			describe: "Path to the folders/files to process",
-			type: "string",
-		})
-		.option("config", {
-			describe: "Path to the config file",
-			type: "string",
-			demandOption: false,
-		})
-		.option("path-baseline", {
-			describe: "Path to the todo file",
-			type: "string",
-			demandOption: false,
-			default: "./.owner-todo.yaml",
-		})
-		.option("update-baseline", {
-			describe: "Update the baseline file",
-			type: "boolean",
-		})
-		.option("debug", {
-			describe: "Debug mode",
-			type: "boolean",
-		})
-		.option("quiet", {
-			describe: "Quiet mode",
-			type: "boolean",
-		});
+	return configOptions(yargs).option("update-baseline", {
+		describe: "Update the baseline file",
+		type: "boolean",
+	});
 };
 
 export const handler = (argv: Arguments<CheckOptions>) => {

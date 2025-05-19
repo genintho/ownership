@@ -20,3 +20,9 @@ export class OErrorNothingToTest extends OErrors {
 		return "Nothing to test";
 	}
 }
+
+export class OErrorNoConfig extends Error {
+	constructor() {
+		super("No Configuration file found. Run the command `init` to generate one.");
+	}
+}

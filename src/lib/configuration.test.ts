@@ -3,6 +3,7 @@ import { parseConfig } from "./configuration.ts";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as fs from "node:fs";
+import { OErrorNoConfig } from "./errors.ts";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -26,7 +27,7 @@ describe("parseConfig", () => {
 			config: path.join(testDir, "nonexistent.yaml"),
 			path: "./",
 		};
-		expect(() => parseConfig(argv)).toThrowError(`Configuration file does not exists at '${argv.config}'`);
+		expect(() => parseConfig(argv)).toThrowError(new OErrorNoConfig());
 	});
 
 	it("should throw an error if the config file is invalid YAML", () => {
