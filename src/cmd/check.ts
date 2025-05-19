@@ -7,6 +7,7 @@ import type { Config } from "../lib/configuration.ts";
 import { initialize as initializeBaseline, type Baseline } from "../lib/baseline.ts";
 import { log } from "../lib/log.ts";
 import * as path from "path";
+import { computePathToTest } from "../lib/file-utils.ts";
 
 export interface CheckOptions {
 	config: string;
@@ -134,17 +135,6 @@ export function assembleAllRegExp(config: Config): RegExpMap {
 		allRegExp[feature.owner] = featureRegExp;
 	}
 	return allRegExp;
-}
-
-export function computePathToTest(config: Config): string[] {
-	if (fs.statSync(config.path).isDirectory()) {
-		let files = fs
-			.readdirSync(config.pathAbs, { recursive: true, withFileTypes: true })
-			.filter((file) => file.isFile())
-			.map((file) => path.join(file.path, file.name));
-		return files;
-	}
-	return [config.pathAbs];
 }
 
 export function findOwner(

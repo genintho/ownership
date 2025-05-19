@@ -13,7 +13,7 @@ describe("findOwner", () => {
 		expect(cmd.findOwner(regexps, [], new Baseline({}), "bob.png")).toBe("donut");
 	});
 
-	it("match simple regexp", () => {
+	it("match nested regexp", () => {
 		const regexps = {
 			donut: new RegExp("something|bob.png"),
 		};
@@ -27,49 +27,12 @@ describe("findOwner", () => {
 		expect(cmd.findOwner(regexps, [], new Baseline({}), "null.png")).toBeNull();
 	});
 
-	it.only("baseline match return symbol", () => {
+	it("baseline match return symbol", () => {
 		expect(cmd.findOwner({}, [], new Baseline({ files: ["baseline.png"] }), "./baseline.png")).toBe(cmd.MATCH_BASELINE);
 	});
 
-	it.only("exclude match return symbol", () => {
+	it("exclude match return symbol", () => {
 		expect(cmd.findOwner({}, [new RegExp("baseline.png")], new Baseline(), "./baseline.png")).toBe(cmd.MATCH_EXCLUDE);
-	});
-});
-
-describe("computePathToTest", () => {
-	beforeAll(() => {
-		fs.mkdirSync("./test-dir/subdir", { recursive: true });
-		fs.writeFileSync("./test-dir/file1.txt", "file1");
-		fs.writeFileSync("./test-dir/subdir/file2.txt", "file2");
-		fs.writeFileSync("./outisde.txt", "test file");
-	});
-
-	afterAll(() => {
-		fs.rmSync("./test-dir", { recursive: true, force: true });
-		fs.rmSync("./test-file.txt", { force: true });
-	});
-
-	it("handles directory path with trailing slash", () => {
-		const config = new Config({ path: "./test-dir/", config: "" }, {});
-		const result = cmd.computePathToTest(config);
-		expect(result).toContain(path.resolve(config.pathAbs, "./file1.txt"));
-		expect(result).toContain(path.resolve(config.pathAbs, "./subdir/file2.txt"));
-		expect(result).not.toContain(path.resolve(config.pathAbs, "./outside.txt"));
-	});
-
-	it("handles directory path without trailing slash", () => {
-		const config = new Config({ path: "./test-dir", config: "" }, {});
-		const result = cmd.computePathToTest(config);
-		expect(result).toContain(path.resolve(config.pathAbs, "./file1.txt"));
-		expect(result).toContain(path.resolve(config.pathAbs, "./subdir/file2.txt"));
-		expect(result).not.toContain(path.resolve(config.pathAbs, "./outside.txt"));
-	});
-
-	it("handles single file path", () => {
-		const config = new Config({ path: "./test-dir/file1.txt", config: "" }, {});
-		const result = cmd.computePathToTest(config);
-		expect(config.pathAbs).toContain("test-dir/file1.txt");
-		expect(result).toEqual([config.pathAbs]);
 	});
 });
 

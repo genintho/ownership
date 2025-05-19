@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+Unit tests for this project are written using vitest.
+the node:fs is automatically mocked using memfs
+The configuration of the test is in [vitest.config.ts](mdc:vitest.config.ts).
+The test setup are in [vitest.setup.ts](mdc:vitest.setup.ts).
+The tests can be executed by running `yarn test run`
+You should leave the existing code as is unless ask to modify it.
