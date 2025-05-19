@@ -3,7 +3,7 @@ import { load as YamlLoad } from "js-yaml";
 import { fileURLToPath } from "node:url";
 import * as path from "node:path";
 import { log } from "./log.ts";
-import { OErrorNoConfig } from "./errors.ts";
+import { OErrorDebugAndQuiet, OErrorNoConfig } from "./errors.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,6 +13,7 @@ type argvType = {
 	path: string;
 	pathBaseline?: string;
 	debug?: boolean;
+	quiet?: boolean;
 };
 
 export function parseConfig(argv: argvType): Config {
@@ -45,6 +46,7 @@ export function parseConfig(argv: argvType): Config {
 
 export class Config {
 	public readonly debug;
+	public readonly quiet;
 	public readonly path: string;
 	public readonly pathAbs: string;
 	public readonly pathBasename: string;
@@ -63,6 +65,11 @@ export class Config {
 
 	constructor(argv: argvType, fileData: any) {
 		this.debug = argv.debug || fileData.configuration?.debug || false;
+		this.quiet = argv.quiet || fileData.configuration?.quiet || false;
+
+		if (this.debug && this.quiet) {
+			throw new OErrorDebugAndQuiet();
+		}
 
 		let pathToAnalyze = argv.path || fileData.configuration?.path || "./";
 		if (pathToAnalyze.endsWith("/")) {
@@ -87,6 +94,7 @@ export class Config {
 				pathBaseline: this.pathBaseline,
 				stopFirstError: this.stopFirstError,
 				debug: this.debug,
+				quiet: this.quiet,
 			},
 			exclude: this.exclude,
 			teams: this.teams,

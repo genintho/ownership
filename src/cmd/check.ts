@@ -60,14 +60,18 @@ export function runTest(config: Config, baseline: Baseline, filesPathToTest: str
 		const owner = findOwner(regexps, config.exclude, baseline, fullFilePath);
 
 		if (owner === null) {
-			log.error(chalk.red("[X]"), fullFilePath, "has no owner");
+			if (!config.quiet) {
+				log.error(chalk.red("[X]"), fullFilePath, "has no owner");
+			}
 			errors.push(new OErrorFileNoOwner(config.pathAbs, fullFilePath));
-		} else if (owner === MATCH_EXCLUDE) {
-			log.info(chalk.grey("[✓]"), fullFilePath, "is excluded");
-		} else if (owner === MATCH_BASELINE) {
-			log.info(chalk.grey("[✓]"), fullFilePath, "is in the baseline");
-		} else {
-			log.info(chalk.green("[✓]"), fullFilePath, "owner:", chalk.blue(owner));
+		} else if (!config.quiet) {
+			if (owner === MATCH_EXCLUDE) {
+				log.info(chalk.grey("[✓]"), fullFilePath, "is excluded");
+			} else if (owner === MATCH_BASELINE) {
+				log.info(chalk.grey("[✓]"), fullFilePath, "is in the baseline");
+			} else {
+				log.info(chalk.green("[✓]"), fullFilePath, "owner:", chalk.blue(owner));
+			}
 		}
 
 		// If config ask to stop as soon as an error is found

@@ -21,6 +21,12 @@ export class OErrorNothingToTest extends OError {
 	}
 }
 
+export class OErrorDebugAndQuiet extends OError {
+	message(): string {
+		return "Option debug and quiet cannot be enabled at the same time";
+	}
+}
+
 export class OErrorNoConfig extends OError {
 	message() {
 		return "No Configuration file found. Run the command `init` to generate one.";

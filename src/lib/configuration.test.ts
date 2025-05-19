@@ -27,7 +27,7 @@ describe("parseConfig", () => {
 			config: path.join(testDir, "nonexistent.yaml"),
 			path: "./",
 		};
-		expect(() => parseConfig(argv)).toThrowError(new OErrorNoConfig());
+		expect(() => parseConfig(argv)).toThrow(OErrorNoConfig);
 	});
 
 	it("should throw an error if the config file is invalid YAML", () => {

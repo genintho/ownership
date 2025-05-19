@@ -22,12 +22,11 @@ export function defaultOptions(yargs: Argv) {
 	return yargs
 		.option("debug", {
 			describe: "Debug mode",
-			type: "boolean",
 		})
 		.option("quiet", {
 			describe: "Quiet mode",
-			type: "boolean",
-		});
+		})
+		;
 }
 
 export function configOptions(yargs: Argv) {
