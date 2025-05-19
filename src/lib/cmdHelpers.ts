@@ -25,8 +25,7 @@ export function defaultOptions(yargs: Argv) {
 		})
 		.option("quiet", {
 			describe: "Quiet mode",
-		})
-		;
+		});
 }
 
 export function configOptions(yargs: Argv) {

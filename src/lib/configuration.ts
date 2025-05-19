@@ -35,6 +35,10 @@ export function parseConfig(argv: argvType): Config {
 
 	const config = new Config(argv, configFileContent);
 
+	// @TODO "logLevel" option?
+	if (config.quiet) log.setLevel("quiet");
+	if (config.debug) log.setLevel("debug");
+
 	if (configFileContent.debug) {
 		log.debug("\nConfiguration from argv", JSON.stringify(argv));
 		log.debug("\nConfiguration from config file", JSON.stringify(configFileContent));
