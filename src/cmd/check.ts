@@ -6,8 +6,8 @@ import type { Config } from "../lib/configuration.ts";
 import { initialize as initializeBaseline, type Baseline } from "../lib/baseline.ts";
 import { log } from "../lib/log.ts";
 import { computePathToTest } from "../lib/file-utils.ts";
-import { OErrors, OErrorFileNoOwner, OErrorNothingToTest } from "../lib/errors.ts";
-import { configOptions } from "../lib/cmdHelpers.ts";
+import { type OError, OErrorFileNoOwner, OErrorNothingToTest } from "../lib/errors.ts";
+import { configOptions, defaultHandler } from "../lib/cmdHelpers.ts";
 
 export interface CheckOptions {
 	config: string;
@@ -28,7 +28,7 @@ export const builder = (yargs: Argv) => {
 	});
 };
 
-export const handler = (argv: Arguments<CheckOptions>) => {
+export const handler = defaultHandler((argv: Arguments<CheckOptions>) => {
 	const config = parseConfig(argv);
 	const baseline = initializeBaseline(config);
 
@@ -44,17 +44,17 @@ export const handler = (argv: Arguments<CheckOptions>) => {
 		process.exit(1);
 	}
 	log.info(chalk.green("[✓]"), "No errors found");
-};
+});
 
 export const MATCH_BASELINE = Symbol("MATCH_BASELINE");
 export const MATCH_EXCLUDE = Symbol("MATCH_EXCLUDE");
 
-export function runTest(config: Config, baseline: Baseline, filesPathToTest: string[]): OErrors[] {
+export function runTest(config: Config, baseline: Baseline, filesPathToTest: string[]): OError[] {
 	if (filesPathToTest.length === 0) {
 		return [new OErrorNothingToTest()];
 	}
 
-	const errors: OErrors[] = [];
+	const errors: OError[] = [];
 	const regexps = assembleAllRegExp(config);
 	for (const fullFilePath of filesPathToTest) {
 		const owner = findOwner(regexps, config.exclude, baseline, fullFilePath);

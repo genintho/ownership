@@ -1,10 +1,10 @@
-export class OErrors {
+export class OError {
 	message(): string {
 		throw new Error("Must be implemented");
 	}
 }
 
-export class OErrorFileNoOwner extends OErrors {
+export class OErrorFileNoOwner extends OError {
 	public readonly filePath: string;
 	constructor(root: string, filePath: string) {
 		super();
@@ -15,14 +15,14 @@ export class OErrorFileNoOwner extends OErrors {
 	}
 }
 
-export class OErrorNothingToTest extends OErrors {
+export class OErrorNothingToTest extends OError {
 	message(): string {
 		return "Nothing to test";
 	}
 }
 
-export class OErrorNoConfig extends Error {
-	constructor() {
-		super("No Configuration file found. Run the command `init` to generate one.");
+export class OErrorNoConfig extends OError {
+	message() {
+		return "No Configuration file found. Run the command `init` to generate one.";
 	}
 }
