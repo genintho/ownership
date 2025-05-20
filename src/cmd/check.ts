@@ -38,7 +38,7 @@ export const handler = defaultHandler((argv: Arguments<CheckOptions>) => {
 
 	if (argv.updateBaseline) {
 		updateBaseline(config, baseline);
-		process.exit(0);
+		return 0;
 	}
 
 	if (errors.length > 0) {
@@ -59,7 +59,7 @@ export const handler = defaultHandler((argv: Arguments<CheckOptions>) => {
 		log.info(chalk.grey("You can remove them by hand, or run `check --update-baseline` to update the baseline file"));
 	}
 
-	process.exit(errors.length > 0 ? 1 : 0);
+	return errors.length > 0 ? 1 : 0;
 });
 
 function updateBaseline(config: Config, baseline: Baseline) {

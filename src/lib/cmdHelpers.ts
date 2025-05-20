@@ -2,11 +2,13 @@
 import type { Arguments, Argv } from "yargs";
 import chalk from "chalk";
 import { OError } from "./errors.ts";
-
-export function defaultHandler<T>(cb: (argv: Arguments<T>) => void) {
+import { log } from "./log.ts";
+export function defaultHandler<T>(cb: (argv: Arguments<T>) => number) {
 	return (argv: Arguments<any>) => {
+		let returnCode = 1;
+		log.time("Total");
 		try {
-			cb(argv);
+			returnCode =cb(argv);
 		} catch (e) {
 			if (e instanceof OError) {
 				console.error(chalk.red(e.message()));
@@ -14,6 +16,9 @@ export function defaultHandler<T>(cb: (argv: Arguments<T>) => void) {
 			}
 			throw e;
 		}
+		const duration = log.timeEnd("Total", false);
+		log.info("Done", chalk.grey(`in ${duration}ms`));
+		process.exit(returnCode);
 	};
 }
 
