@@ -3,6 +3,7 @@ import { vi } from "vitest";
 vi.mock("./src/lib/log.ts", () => {
 	return {
 		log: {
+			setLevel: vi.fn(),
 			info: vi.fn(),
 			error: vi.fn(),
 			debug: vi.fn(),
