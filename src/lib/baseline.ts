@@ -5,58 +5,51 @@ import * as fs from "node:fs";
 export function initialize(config: Config) {
 	const todoFile = config.pathBaseline;
 	if (!fs.existsSync(todoFile)) {
-		return new Baseline({});
+		return new Baseline(config.pathAbs, {});
 	}
 	const todoFileContent = fs.readFileSync(todoFile, "utf8");
 	const todos = YamlLoad(todoFileContent);
 	// @ts-expect-error
-	return new Baseline(todos);
+	return new Baseline(config.pathAbs, todos);
 }
 
-export function write(config: Config, baseline: Baseline) {
-	if (!baseline.hasChanged) {
-		return;
-	}
+export function saveBaseline(config: Config, baseline: Baseline) {
 	const todoFile = config.pathBaseline;
-	fs.writeFileSync(todoFile, YamlDump(baseline.toJSON()));
+	fs.writeFileSync(todoFile, YamlDump(baseline.toJSON(), { sortKeys: true, lineWidth: -1 }));
 }
 
 export class Baseline {
 	readonly version: number;
-	private readonly files: Set<string>;
-	private changed: boolean;
-
-	constructor(json: { version?: number; files?: string[] } = {}) {
+	private readonly existingFileRecords: Set<string>;
+	public readonly filesToAdd: Set<string> = new Set();
+	private readonly filesToKeep: Set<string> = new Set();
+	private readonly pathAbs: string;
+	constructor(pathAbs: string, json: { version?: number; files?: string[] } = {}) {
 		this.version = json.version || 1;
-		this.files = new Set([]);
-		for (const file of json.files || []) {
-			this.add(file);
-		}
-		this.changed = false;
-	}
-
-	add(file: string) {
-		if (!file.startsWith("./")) {
-			file = "./" + file;
-		}
-		this.files.add(file);
-		this.changed = true;
-	}
-
-	remove(file: string) {
-		this.files.delete(file);
-		this.changed = true;
+		this.pathAbs = pathAbs;
+		this.existingFileRecords = new Set(json.files || []);
 	}
 
 	check(file: string) {
-		return this.files.has(file);
+		const relativeFile = file.replace(this.pathAbs, ".");
+		if (this.existingFileRecords.has(relativeFile)) {
+			this.filesToKeep.add(relativeFile);
+			return true;
+		}
+		this.filesToAdd.add(relativeFile);
+		return false;
 	}
 
-	get hasChanged(): boolean {
-		return this.changed;
+	get unneededFileRecord(): string[] {
+		return [...this.existingFileRecords.difference(this.filesToKeep)];
 	}
 
-	toJSON(): string {
-		return JSON.stringify(this, null, 2);
+	toJSON(): object {
+		const files = [...this.filesToKeep, ...this.filesToAdd];
+		files.sort();
+		return {
+			version: this.version,
+			files,
+		};
 	}
 }

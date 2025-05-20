@@ -10,7 +10,7 @@
 			"name": "Check",
 			"skipFiles": ["<node_internals>/**"],
 			"program": "${workspaceFolder}/src/main.ts",
-			"args": ["check", "src"],
+			"args": ["check", "--config=examples/config.yaml", "--update-baseline=true", "src"],
 			"outFiles": ["${workspaceFolder}/**/*.js"]
 		}
 	]

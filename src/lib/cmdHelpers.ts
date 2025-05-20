@@ -1,6 +1,5 @@
 // @ts-expect-error
 import type { Arguments, Argv } from "yargs";
-import { parseConfig } from "./configuration.ts";
 import chalk from "chalk";
 import { OError } from "./errors.ts";
 

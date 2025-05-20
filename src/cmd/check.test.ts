@@ -1,8 +1,7 @@
-import { expect, describe, it, beforeAll, afterAll } from "vitest";
+import { expect, describe, it, beforeAll } from "vitest";
 import * as cmd from "./check.ts";
 import { Config } from "../lib/configuration.ts";
 import * as fs from "node:fs";
-import * as path from "node:path";
 import { Baseline } from "../lib/baseline.ts";
 
 describe("findOwner", () => {
@@ -10,29 +9,27 @@ describe("findOwner", () => {
 		const regexps = {
 			donut: new RegExp("bob.png"),
 		};
-		expect(cmd.findOwner(regexps, [], new Baseline({}), "bob.png")).toBe("donut");
+		expect(cmd.findOwner(regexps, new Baseline("/root", {}), "bob.png")).toBe("donut");
 	});
 
 	it("match nested regexp", () => {
 		const regexps = {
 			donut: new RegExp("something|bob.png"),
 		};
-		expect(cmd.findOwner(regexps, [], new Baseline({}), "bob.png")).toBe("donut");
+		expect(cmd.findOwner(regexps, new Baseline("/root", {}), "bob.png")).toBe("donut");
 	});
 
 	it("return null on miss", () => {
 		const regexps = {
 			donut: new RegExp("bob.png"),
 		};
-		expect(cmd.findOwner(regexps, [], new Baseline({}), "null.png")).toBeNull();
+		expect(cmd.findOwner(regexps, new Baseline("/root", {}), "null.png")).toBeNull();
 	});
 
 	it("baseline match return symbol", () => {
-		expect(cmd.findOwner({}, [], new Baseline({ files: ["baseline.png"] }), "./baseline.png")).toBe(cmd.MATCH_BASELINE);
-	});
-
-	it("exclude match return symbol", () => {
-		expect(cmd.findOwner({}, [new RegExp("baseline.png")], new Baseline(), "./baseline.png")).toBe(cmd.MATCH_EXCLUDE);
+		expect(cmd.findOwner({}, new Baseline("/root", { files: ["./baseline.png"] }), "./baseline.png")).toBe(
+			cmd.MATCH_BASELINE,
+		);
 	});
 });
 
@@ -72,7 +69,7 @@ describe("runTest", () => {
 
 	it("empty feature returns empty map", () => {
 		const config = new Config({ path: "./src", config: "" }, {});
-		const result = cmd.runTest(config, new Baseline({}), []);
+		const result = cmd.runTest(config, new Baseline("/root", {}), []);
 		expect(result).toMatchInlineSnapshot(`
 			[
 			  OErrorNothingToTest {},
@@ -92,7 +89,7 @@ describe("runTest", () => {
 				},
 			},
 		);
-		const result = cmd.runTest(config, new Baseline({}), files);
+		const result = cmd.runTest(config, new Baseline("/root", {}), files);
 		expect(result).toMatchInlineSnapshot(`
 			[
 			  OErrorFileNoOwner {
@@ -120,31 +117,11 @@ describe("runTest", () => {
 				},
 			},
 		);
-		const result = cmd.runTest(config, new Baseline({ files: ["readme.md"] }), files);
+		const result = cmd.runTest(config, new Baseline("/root", { files: ["./readme.md"] }), files);
 		expect(result).toMatchInlineSnapshot(`
 			[
 			  OErrorFileNoOwner {
 			    "filePath": "./src/utils/str.cpp",
-			  },
-			]
-		`);
-	});
-
-	it("file found in the baseline are ignored", () => {
-		const config = new Config(
-			{ path: "./src", config: "" },
-			{
-				exclude: ["utils/.*$"],
-			},
-		);
-		const result = cmd.runTest(config, new Baseline({}), files);
-		expect(result).toMatchInlineSnapshot(`
-			[
-			  OErrorFileNoOwner {
-			    "filePath": "./src/main.cpp",
-			  },
-			  OErrorFileNoOwner {
-			    "filePath": "./readme.md",
 			  },
 			]
 		`);

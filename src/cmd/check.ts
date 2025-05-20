@@ -3,7 +3,7 @@ import chalk from "chalk";
 import type { Arguments, Argv } from "yargs";
 import { parseConfig } from "../lib/configuration.ts";
 import type { Config } from "../lib/configuration.ts";
-import { initialize as initializeBaseline, type Baseline } from "../lib/baseline.ts";
+import { initialize as initializeBaseline, type Baseline, saveBaseline } from "../lib/baseline.ts";
 import { log } from "../lib/log.ts";
 import { computePathToTest } from "../lib/file-utils.ts";
 import { type OError, OErrorFileNoOwner, OErrorNothingToTest } from "../lib/errors.ts";
@@ -36,18 +36,59 @@ export const handler = defaultHandler((argv: Arguments<CheckOptions>) => {
 
 	const errors = runTest(config, baseline, filesPathToTest);
 
+	if (argv.updateBaseline) {
+		updateBaseline(config, baseline);
+		process.exit(0);
+	}
+
 	if (errors.length > 0) {
-		log.error(chalk.red("[X]"), "Found errors");
+		log.error(chalk.red("\n[X]"), "Found errors");
 		for (const error of errors) {
 			log.error("  ", chalk.red("[X]"), error.message());
 		}
-		process.exit(1);
+	} else {
+		log.info(chalk.green("[✓]"), "No errors found");
 	}
-	log.info(chalk.green("[✓]"), "No errors found");
+
+	const unneededFileRecord = baseline.unneededFileRecord;
+	if (unneededFileRecord.length > 0) {
+		log.info(chalk.blue("\nBaseline:"), " contains outdated file references:");
+		for (const file of unneededFileRecord) {
+			log.info("  ", file);
+		}
+		log.info(chalk.grey("You can remove them by hand, or run `check --update-baseline` to update the baseline file"));
+	}
+
+	process.exit(errors.length > 0 ? 1 : 0);
 });
 
+function updateBaseline(config: Config, baseline: Baseline) {
+	const unneededFileRecord = baseline.unneededFileRecord;
+	if (baseline.filesToAdd.size > 0) {
+		log.info(chalk.blue("\nBaseline will be updated to include the following files:"));
+		for (const file of baseline.filesToAdd) {
+			log.info("  ", chalk.grey("[X] " + file));
+		}
+	}
+
+	if (unneededFileRecord.length > 0) {
+		log.info(chalk.blue("Baseline: outdated file references will be removed::"));
+		for (const file of unneededFileRecord) {
+			log.info("  ", file);
+		}
+	}
+
+	if (unneededFileRecord.length === 0 && baseline.filesToAdd.size === 0) {
+		log.info(chalk.dim.green("No changes to the baseline file"));
+		return;
+	}
+
+	log.info("\nSaving new baseline file...");
+	saveBaseline(config, baseline);
+	log.info(chalk.green("Baseline file updated"));
+}
+
 export const MATCH_BASELINE = Symbol("MATCH_BASELINE");
-export const MATCH_EXCLUDE = Symbol("MATCH_EXCLUDE");
 
 export function runTest(config: Config, baseline: Baseline, filesPathToTest: string[]): OError[] {
 	if (filesPathToTest.length === 0) {
@@ -57,17 +98,15 @@ export function runTest(config: Config, baseline: Baseline, filesPathToTest: str
 	const errors: OError[] = [];
 	const regexps = assembleAllRegExp(config);
 	for (const fullFilePath of filesPathToTest) {
-		const owner = findOwner(regexps, config.exclude, baseline, fullFilePath);
+		const owner = findOwner(regexps, baseline, fullFilePath);
 
 		if (owner === null) {
-			log.info(chalk.red("[X]"), fullFilePath, "has no owner");
+			log.debug(chalk.red("[X]"), fullFilePath, "has no owner");
 			errors.push(new OErrorFileNoOwner(config.pathAbs, fullFilePath));
-		} else if (owner === MATCH_EXCLUDE) {
-			log.info(chalk.grey("[✓]"), fullFilePath, "is excluded");
 		} else if (owner === MATCH_BASELINE) {
-			log.info(chalk.grey("[✓]"), fullFilePath, "is in the baseline");
+			log.debug(chalk.grey("[✓]"), fullFilePath, "is in the baseline");
 		} else {
-			log.info(chalk.green("[✓]"), fullFilePath, "owner:", chalk.blue(owner));
+			log.debug(chalk.green("[✓]"), fullFilePath, "owner:", chalk.blue(owner));
 		}
 
 		// If config ask to stop as soon as an error is found
@@ -91,20 +130,9 @@ export function assembleAllRegExp(config: Config): RegExpMap {
 	return allRegExp;
 }
 
-export function findOwner(
-	regexps: RegExpMap,
-	excludeList: RegExp[],
-	baseline: Baseline,
-	file: string,
-): string | null | typeof MATCH_BASELINE | typeof MATCH_EXCLUDE {
+export function findOwner(regexps: RegExpMap, baseline: Baseline, file: string): string | null | typeof MATCH_BASELINE {
 	if (baseline.check(file)) {
 		return MATCH_BASELINE;
-	}
-
-	for (const exclude of excludeList) {
-		if (exclude.test(file)) {
-			return MATCH_EXCLUDE;
-		}
 	}
 
 	for (const [team, regexp] of Object.entries(regexps)) {
