@@ -8,7 +8,7 @@ export function defaultHandler<T>(cb: (argv: Arguments<T>) => number) {
 		let returnCode = 1;
 		log.time("Total");
 		try {
-			returnCode =cb(argv);
+			returnCode = cb(argv);
 		} catch (e) {
 			if (e instanceof OError) {
 				console.error(chalk.red(e.message()));
