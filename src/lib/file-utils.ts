@@ -9,6 +9,7 @@ import chalk from "chalk";
  * Returns an array of absolute file paths.
  */
 export function computePathToTest(config: Config): string[] {
+	log.time("computePathToTest");
 	log.debug("Compute the list of file paths to test");
 	log.debug("config.path", config.path);
 	log.debug("config.pathAbs", config.pathAbs);
@@ -28,9 +29,11 @@ export function computePathToTest(config: Config): string[] {
 				}
 				return true;
 			});
+		log.timeEnd("computePathToTest");
 		return files;
 	}
 
 	log.debug("config.path is a file, return the path to test");
+	log.timeEnd("computePathToTest");
 	return [config.pathAbs];
 }

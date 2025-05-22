@@ -9,6 +9,8 @@ vi.mock("./src/lib/log.ts", () => {
 			debug: vi.fn(),
 			log: vi.fn(),
 			warn: vi.fn(),
+			time: vi.fn(),
+			timeEnd: vi.fn(),
 		},
 	};
 });
