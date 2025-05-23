@@ -49,6 +49,19 @@ export function parseConfig(argv: argvType): Config {
 	return config;
 }
 
+function excludeToRegex(excludes: string[] = []): RegExp[] {
+	// @ts-expect-error
+	return excludes.map((exclude) => {
+		// @TODO detect if not array and log error is it is the case
+		// eslint-disable-next-line no-control-regex
+		const regex = /^(?!^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\..*)?$)[^<>:"/\\|?*\x00-\x1F]{1,255}[\\/]{0,1}$/i;
+		if (regex.test(exclude)) {
+			return new RegExp(exclude);
+		}
+		return minimatch.makeRe(exclude);
+	});
+}
+
 export class Config {
 	public readonly debug;
 	public readonly quiet;
@@ -86,17 +99,7 @@ export class Config {
 
 		this.pathBaseline = argv.pathBaseline || fileData.configuration?.basepathBaselineline || "./.owner-todo.yml";
 		this.stopFirstError = fileData.configuration?.stopFirstError || false;
-		// @TODO detect if not array and log error is it is the case
-		// this.exclude = (fileData.exclude || []).map((e: string) => new RegExp(e));
-		this.exclude = (fileData.exclude || []).map((e: string) => {
-			// Cross-platform safe directory name (with optional trailing slash):
-			// eslint-disable-next-line no-control-regex
-			const regex = /^(?!^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\..*)?$)[^<>:"/\\|?*\x00-\x1F]{1,255}[\\/]{0,1}$/i;
-			if (regex.test(e)) {
-				return new RegExp(e);
-			}
-			return minimatch.makeRe(e);
-		});
+		this.exclude = excludeToRegex(fileData.exclude);
 		this.teams = fileData.teams || {};
 		this.features = fileData.features || {};
 	}
