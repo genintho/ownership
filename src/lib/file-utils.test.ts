@@ -40,4 +40,11 @@ describe("computePathToTest", () => {
 		expect(config.pathAbs).toContain("test-dir/file1.txt");
 		expect(result).toEqual([config.pathAbs]);
 	});
+
+	it("does not include excluded files", async () => {
+		const config = new Config({ path: "./test-dir", config: "" }, { exclude: ["subdir"] });
+		const result = await computePathToTest(config);
+		expect(result).toHaveLength(1);
+		expect(result).not.toContain(path.resolve(config.pathAbs, "./subdir/file2.txt"));
+	});
 });
