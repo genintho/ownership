@@ -28,11 +28,11 @@ export const builder = (yargs: Argv) => {
 	});
 };
 
-export const handler = defaultHandler((argv: Arguments<CheckOptions>) => {
+export const handler = defaultHandler(async (argv: Arguments<CheckOptions>) => {
 	const config = parseConfig(argv);
 	const baseline = initializeBaseline(config);
 
-	const filesPathToTest = computePathToTest(config);
+	const filesPathToTest = await computePathToTest(config);
 
 	const errors = runTest(config, baseline, filesPathToTest);
 

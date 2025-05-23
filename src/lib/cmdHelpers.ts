@@ -3,12 +3,12 @@ import type { Arguments, Argv } from "yargs";
 import chalk from "chalk";
 import { OError } from "./errors.ts";
 import { log } from "./log.ts";
-export function defaultHandler<T>(cb: (argv: Arguments<T>) => number) {
-	return (argv: Arguments<any>) => {
+export function defaultHandler<T>(cb: (argv: Arguments<T>) => Promise<number>) {
+	return async (argv: Arguments<any>) => {
 		let returnCode = 1;
 		log.time("Total");
 		try {
-			returnCode = cb(argv);
+			returnCode = await cb(argv);
 		} catch (e) {
 			if (e instanceof OError) {
 				console.error(chalk.red(e.message()));

@@ -17,26 +17,26 @@ describe("computePathToTest", () => {
 		fs.rmSync("./test-file.txt", { force: true });
 	});
 
-	it("handles directory path with trailing slash", () => {
+	it("handles directory path with trailing slash", async () => {
 		const config = new Config({ path: "./test-dir/", config: "" }, {});
-		const result = computePathToTest(config);
+		const result = await computePathToTest(config);
 
 		expect(result).toContain(path.resolve(config.pathAbs, "./file1.txt"));
 		expect(result).toContain(path.resolve(config.pathAbs, "./subdir/file2.txt"));
 		expect(result).not.toContain(path.resolve(config.pathAbs, "./outside.txt"));
 	});
 
-	it("handles directory path without trailing slash", () => {
+	it("handles directory path without trailing slash", async () => {
 		const config = new Config({ path: "./test-dir", config: "" }, {});
-		const result = computePathToTest(config);
+		const result = await computePathToTest(config);
 		expect(result).toContain(path.resolve(config.pathAbs, "./file1.txt"));
 		expect(result).toContain(path.resolve(config.pathAbs, "./subdir/file2.txt"));
 		expect(result).not.toContain(path.resolve(config.pathAbs, "./outside.txt"));
 	});
 
-	it("handles single file path", () => {
+	it("handles single file path", async () => {
 		const config = new Config({ path: "./test-dir/file1.txt", config: "" }, {});
-		const result = computePathToTest(config);
+		const result = await computePathToTest(config);
 		expect(config.pathAbs).toContain("test-dir/file1.txt");
 		expect(result).toEqual([config.pathAbs]);
 	});
