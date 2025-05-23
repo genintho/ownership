@@ -11,6 +11,7 @@
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"lint": "oxlint .",
+		"lint:watch": "node oxlint.watch.js",
 		"ci": "yarn lint && yarn format:check && yarn tsc"
 	},
 	"devDependencies": {
