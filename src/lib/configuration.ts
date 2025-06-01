@@ -18,10 +18,17 @@ type argvType = {
 };
 
 export function parseConfig(argv: argvType): Config {
+	if (argv.debug) {
+		log.setLevel("debug");
+	}
+
+	log.debug("Configuration from argv", JSON.stringify(argv));
+
 	// @ts-expect-error
 	let configFileContent: Config = {};
 
-	const configPath = argv.config || path.resolve(__dirname, "config.yaml");
+	const configPath = path.resolve(argv.config || path.resolve(__dirname, "ownership.yaml"));
+	log.debug("Configuration file path", configPath);
 
 	if (!fs.existsSync(configPath)) {
 		throw new OErrorNoConfig();
@@ -41,16 +48,15 @@ export function parseConfig(argv: argvType): Config {
 	if (config.quiet) log.setLevel("quiet");
 	if (config.debug) log.setLevel("debug");
 
-	if (configFileContent.debug) {
-		log.debug("\nConfiguration from argv", JSON.stringify(argv));
-		log.debug("\nConfiguration from config file", JSON.stringify(configFileContent));
-		log.debug("\nFinal Configuration ", config.toJSON());
-	}
+	log.debug("Configuration from config file", JSON.stringify(configFileContent));
 
 	return config;
 }
 
-function excludeToRegex(excludes: string[] = []): RegExp[] {
+function excludeToRegex(excludes: string[] | null = []): RegExp[] {
+	if (!excludes) {
+		return [];
+	}
 	// @ts-expect-error
 	return excludes.map((exclude) => {
 		// @TODO detect if not array and log error is it is the case
@@ -88,7 +94,6 @@ export class Config {
 	constructor(argv: argvType, fileData: any) {
 		this.debug = argv.debug || fileData.configuration?.debug || false;
 		this.quiet = argv.quiet || fileData.configuration?.quiet || false;
-
 		if (this.debug && this.quiet) {
 			throw new OErrorDebugAndQuiet();
 		}
