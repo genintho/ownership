@@ -29,6 +29,7 @@ export function parseConfig(argv: argvType): Config {
 
 	try {
 		const configFile = fs.readFileSync(configPath, "utf8");
+		log.debug("Configuration file read", configFile.length, "bytes");
 		configFileContent = YamlLoad(configFile) as any;
 	} catch (e: any) {
 		throw new Error("\nError loading or parsing config file: " + e.message);
