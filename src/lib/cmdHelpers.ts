@@ -14,7 +14,9 @@ export function defaultHandler<T>(cb: (argv: Arguments<T>) => Promise<number>) {
 				console.error(chalk.red(e.message()));
 				process.exit(1);
 			}
-			throw e;
+			console.error(chalk.red(e));
+			console.log(e);
+				process.exit(1);
 		}
 		const duration = log.timeEnd("Total", false);
 		log.info("Done", chalk.grey(`in ${duration}ms`));
