@@ -11,14 +11,14 @@ import { configOptions, defaultHandler } from "../lib/cmdHelpers.ts";
 
 export interface CheckOptions {
 	config: string;
-	path: string;
+	paths: string[];
 	pathBaseline: string;
 	updateBaseline: boolean;
 	debug: boolean;
 	verbose: boolean;
 }
 
-export const command = "check <path>";
+export const command = "check <paths..>";
 export const describe = "Check that files are owned";
 
 export const builder = (yargs: Argv) => {
@@ -102,7 +102,8 @@ export function runTest(config: Config, baseline: Baseline, filesPathToTest: str
 
 		if (owner === null) {
 			log.debug(chalk.red("[X]"), fullFilePath, "has no owner");
-			errors.push(new OErrorFileNoOwner(config.pathAbs, fullFilePath));
+			// Use the first path's absolute path for backward compatibility
+			errors.push(new OErrorFileNoOwner(config.paths[0].absolute, fullFilePath));
 		} else if (owner === MATCH_BASELINE) {
 			log.debug(chalk.grey("[✓]"), fullFilePath, "is in the baseline");
 		} else {

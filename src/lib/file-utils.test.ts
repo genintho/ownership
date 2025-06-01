@@ -18,33 +18,57 @@ describe("computePathToTest", () => {
 	});
 
 	it("handles directory path with trailing slash", async () => {
-		const config = new Config({ path: "./test-dir/", config: "" }, {});
+		const config = new Config({ paths: ["./test-dir/"], config: "" }, {});
 		const result = await computePathToTest(config);
 
-		expect(result).toContain(path.resolve(config.pathAbs, "./file1.txt"));
-		expect(result).toContain(path.resolve(config.pathAbs, "./subdir/file2.txt"));
-		expect(result).not.toContain(path.resolve(config.pathAbs, "./outside.txt"));
+		expect(result).toContain(path.resolve(config.paths[0].absolute, "./file1.txt"));
+		expect(result).toContain(path.resolve(config.paths[0].absolute, "./subdir/file2.txt"));
+		expect(result).not.toContain(path.resolve(config.paths[0].absolute, "./outside.txt"));
 	});
 
 	it("handles directory path without trailing slash", async () => {
-		const config = new Config({ path: "./test-dir", config: "" }, {});
+		const config = new Config({ paths: ["./test-dir"], config: "" }, {});
 		const result = await computePathToTest(config);
-		expect(result).toContain(path.resolve(config.pathAbs, "./file1.txt"));
-		expect(result).toContain(path.resolve(config.pathAbs, "./subdir/file2.txt"));
-		expect(result).not.toContain(path.resolve(config.pathAbs, "./outside.txt"));
+		expect(result).toContain(path.resolve(config.paths[0].absolute, "./file1.txt"));
+		expect(result).toContain(path.resolve(config.paths[0].absolute, "./subdir/file2.txt"));
+		expect(result).not.toContain(path.resolve(config.paths[0].absolute, "./outside.txt"));
 	});
 
 	it("handles single file path", async () => {
-		const config = new Config({ path: "./test-dir/file1.txt", config: "" }, {});
+		const config = new Config({ paths: ["./test-dir/file1.txt"], config: "" }, {});
 		const result = await computePathToTest(config);
-		expect(config.pathAbs).toContain("test-dir/file1.txt");
-		expect(result).toEqual([config.pathAbs]);
+		expect(config.paths[0].absolute).toContain("test-dir/file1.txt");
+		expect(result).toEqual([config.paths[0].absolute]);
 	});
 
 	it("does not include excluded files", async () => {
-		const config = new Config({ path: "./test-dir", config: "" }, { exclude: ["subdir"] });
+		const config = new Config({ paths: ["./test-dir"], config: "" }, { exclude: ["subdir"] });
 		const result = await computePathToTest(config);
 		expect(result).toHaveLength(1);
-		expect(result).not.toContain(path.resolve(config.pathAbs, "./subdir/file2.txt"));
+		expect(result).not.toContain(path.resolve(config.paths[0].absolute, "./subdir/file2.txt"));
+	});
+
+	it("handles multiple paths", async () => {
+		const config = new Config({ paths: ["./test-dir/file1.txt", "./test-dir/subdir"], config: "" }, {});
+		const result = await computePathToTest(config);
+
+		// Should include the single file and files from the directory
+		expect(result).toContain(path.resolve("./test-dir/file1.txt"));
+		expect(result).toContain(path.resolve("./test-dir/subdir/file2.txt"));
+		expect(result).toHaveLength(2);
+	});
+
+	it("handles mix of files and directories", async () => {
+		fs.writeFileSync("./standalone.txt", "standalone");
+
+		const config = new Config({ paths: ["./standalone.txt", "./test-dir"], config: "" }, {});
+		const result = await computePathToTest(config);
+
+		// Should include standalone file and all files from test-dir
+		expect(result).toContain(path.resolve("./standalone.txt"));
+		expect(result).toContain(path.resolve("./test-dir/file1.txt"));
+		expect(result).toContain(path.resolve("./test-dir/subdir/file2.txt"));
+
+		fs.rmSync("./standalone.txt", { force: true });
 	});
 });

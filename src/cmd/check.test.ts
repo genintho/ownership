@@ -35,13 +35,13 @@ describe("findOwner", () => {
 
 describe("assembleAllRegExp", () => {
 	it("empty feature returns empty map", () => {
-		const config = new Config({ path: "./test-dir", config: "" }, {});
+		const config = new Config({ paths: ["./test-dir"], config: "" }, {});
 		const result = cmd.assembleAllRegExp(config);
 		expect(result).toEqual({});
 	});
 	it("feature with files returns map with file regexps", () => {
 		const config = new Config(
-			{ path: "./test-dir", config: "" },
+			{ paths: ["./test-dir"], config: "" },
 			{
 				features: {
 					donut: {
@@ -68,7 +68,7 @@ describe("runTest", () => {
 	});
 
 	it("empty feature returns empty map", () => {
-		const config = new Config({ path: "./src", config: "" }, {});
+		const config = new Config({ paths: ["./src"], config: "" }, {});
 		const result = cmd.runTest(config, new Baseline("/root", {}), []);
 		expect(result).toMatchInlineSnapshot(`
 			[
@@ -79,7 +79,7 @@ describe("runTest", () => {
 
 	it("feature with files returns map with file regexps", () => {
 		const config = new Config(
-			{ path: "./src", config: "" },
+			{ paths: ["./src"], config: "" },
 			{
 				features: {
 					billing: {
@@ -107,7 +107,7 @@ describe("runTest", () => {
 
 	it("file found in the baseline are ignored", () => {
 		const config = new Config(
-			{ path: "./src", config: "" },
+			{ paths: ["./src"], config: "" },
 			{
 				features: {
 					billing: {

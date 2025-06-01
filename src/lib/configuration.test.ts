@@ -25,7 +25,7 @@ describe("parseConfig", () => {
 	it("should throw an error if the config file does not exist", () => {
 		const argv = {
 			config: path.join(testDir, "nonexistent.yaml"),
-			path: "./",
+			paths: ["./"],
 		};
 		expect(() => parseConfig(argv)).toThrow(OErrorNoConfig);
 	});
@@ -36,7 +36,7 @@ describe("parseConfig", () => {
 
 		const argv = {
 			config: invalidYamlPath,
-			path: "./",
+			paths: ["./"],
 		};
 
 		expect(() => parseConfig(argv)).toThrowError(/\nError loading or parsing config file: /);
@@ -46,7 +46,37 @@ describe("parseConfig", () => {
 		const p = path.join(testDir, "conf.yaml");
 		fs.writeFileSync(p, "{}");
 
-		const conf = parseConfig({ config: p, path: "./", debug: true });
-		expect(conf).toMatchSnapshot();
+		const conf = parseConfig({ config: p, paths: ["./"], debug: true });
+		expect(conf.paths).toHaveLength(1);
+		expect(conf.paths[0].relative).toBe(".");
+		expect(conf.paths[0].absolute).toBe(path.resolve("."));
+		const confJson = conf.toJSON();
+		// @TODO figure out how to actually test this without hardcoding a path in the snapshot
+		// @ts-expect-error
+		confJson.configuration.paths[0].absolute = "ABSOLUTE_PATH";
+		expect(confJson).toMatchSnapshot();
+	});
+
+	it("should handle multiple paths", () => {
+		const p = path.join(testDir, "conf.yaml");
+		fs.writeFileSync(p, "{}");
+
+		const conf = parseConfig({ config: p, paths: ["./src", "./lib", "./test.js"], debug: true });
+		expect(conf.paths).toHaveLength(3);
+		expect(conf.paths[0].relative).toBe("./src");
+		expect(conf.paths[1].relative).toBe("./lib");
+		expect(conf.paths[2].relative).toBe("./test.js");
+		expect(conf.paths[0].absolute).toBe(path.resolve("./src"));
+		expect(conf.paths[1].absolute).toBe(path.resolve("./lib"));
+		expect(conf.paths[2].absolute).toBe(path.resolve("./test.js"));
+	});
+
+	it("should default to current directory when no paths provided", () => {
+		const p = path.join(testDir, "conf.yaml");
+		fs.writeFileSync(p, "{}");
+
+		const conf = parseConfig({ config: p, paths: [] });
+		expect(conf.paths).toHaveLength(1);
+		expect(conf.paths[0].relative).toBe(".");
 	});
 });

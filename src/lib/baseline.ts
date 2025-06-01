@@ -3,18 +3,18 @@ import { dump as YamlDump, load as YamlLoad } from "js-yaml";
 import * as fs from "node:fs";
 
 export function initialize(config: Config) {
-	const todoFile = config.pathBaseline;
+	const todoFile = config.pathBaselineAbs;
 	if (!fs.existsSync(todoFile)) {
-		return new Baseline(config.pathAbs, {});
+		return new Baseline(config.paths[0].absolute, {});
 	}
 	const todoFileContent = fs.readFileSync(todoFile, "utf8");
 	const todos = YamlLoad(todoFileContent);
 	// @ts-expect-error
-	return new Baseline(config.pathAbs, todos);
+	return new Baseline(config.paths[0].absolute, todos);
 }
 
 export function saveBaseline(config: Config, baseline: Baseline) {
-	const todoFile = config.pathBaseline;
+	const todoFile = config.pathBaselineAbs;
 	fs.writeFileSync(todoFile, YamlDump(baseline.toJSON(), { sortKeys: true, lineWidth: -1 }));
 }
 

@@ -4,8 +4,14 @@ exports[`parseConfig > generate a default config 1`] = `
 {
   "configuration": {
     "debug": true,
-    "path": ".",
     "pathBaseline": "./.owner-todo.yml",
+    "paths": [
+      {
+        "absolute": "ABSOLUTE_PATH",
+        "basename": "owner",
+        "relative": ".",
+      },
+    ],
     "quiet": false,
     "stopFirstError": false,
   },

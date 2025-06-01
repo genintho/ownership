@@ -83,28 +83,50 @@ class Queue {
  * Returns an array of absolute file paths.
  */
 export async function computePathToTest(config: Config): Promise<string[]> {
-	return new Promise((resolve) => {
-		log.time("computePathToTest");
-		log.debug("Compute the list of file paths to test");
-		log.debug("config.path", config.path);
-		log.debug("config.pathAbs", config.pathAbs);
+	log.time("computePathToTest");
+	log.debug("Compute the list of file paths to test");
+	log.debug(
+		"config.paths",
+		config.paths.map((p) => p.relative),
+	);
 
-		if (fs.statSync(config.pathAbs).isDirectory()) {
-			log.debug("config.path is a directory, recursively crawl");
+	const allFiles: string[] = [];
+
+	// Process each path in the config.paths array
+	for (const pathInfo of config.paths) {
+		log.debug("Processing path:", pathInfo.relative, "->", pathInfo.absolute);
+
+		// eslint-disable-next-line no-await-in-loop
+		const filesFromPath = await computePathToTestSingle(pathInfo, config.exclude);
+		allFiles.push(...filesFromPath);
+	}
+
+	log.timeEnd("computePathToTest");
+	return allFiles;
+}
+
+/**
+ * Helper function to process a single path and return its files
+ */
+async function computePathToTestSingle(
+	pathInfo: { relative: string; absolute: string; basename: string },
+	exclude: RegExp[],
+): Promise<string[]> {
+	return new Promise((resolve) => {
+		if (fs.statSync(pathInfo.absolute).isDirectory()) {
+			log.debug("Path is a directory, recursively crawl:", pathInfo.absolute);
 			const queue = new Queue({
 				concurrency: 2,
-				exclude: config.exclude,
+				exclude: exclude,
 				onFinish: (files: string[]) => {
 					resolve(files);
-					log.timeEnd("computePathToTest");
 				},
 			});
-			queue.add(config.pathAbs);
+			queue.add(pathInfo.absolute);
 			return;
 		}
 
-		log.debug("config.path is a file, return the path to test");
-		log.timeEnd("computePathToTest");
-		resolve([config.pathAbs]);
+		log.debug("Path is a file, return the path to test:", pathInfo.absolute);
+		resolve([pathInfo.absolute]);
 	});
 }

@@ -34,9 +34,10 @@ export function defaultOptions(yargs: Argv) {
 
 export function configOptions(yargs: Argv) {
 	let ret = yargs
-		.positional("path", {
-			describe: "Path to the folders/files to process",
+		.positional("paths", {
+			describe: "Path to the folders/files to process (supports multiple paths)",
 			type: "string",
+			array: true,
 		})
 		.option("config", {
 			describe: "Path to the config file",

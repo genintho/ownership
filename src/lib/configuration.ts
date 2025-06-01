@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 type argvType = {
 	config: string;
-	path: string;
+	paths: string[];
 	pathBaseline?: string;
 	debug?: boolean;
 	quiet?: boolean;
@@ -65,10 +65,13 @@ function excludeToRegex(excludes: string[] = []): RegExp[] {
 export class Config {
 	public readonly debug;
 	public readonly quiet;
-	public readonly path: string;
-	public readonly pathAbs: string;
-	public readonly pathBasename: string;
+	public readonly paths: ReadonlyArray<{
+		readonly relative: string;
+		readonly absolute: string;
+		readonly basename: string;
+	}>;
 	public readonly pathBaseline: string;
+	public readonly pathBaselineAbs: string;
 	public readonly stopFirstError: boolean;
 
 	public readonly exclude: RegExp[];
@@ -89,15 +92,24 @@ export class Config {
 			throw new OErrorDebugAndQuiet();
 		}
 
-		let pathToAnalyze = argv.path || fileData.configuration?.path || "./";
-		if (pathToAnalyze.endsWith("/")) {
-			pathToAnalyze = pathToAnalyze.slice(0, -1);
-		}
-		this.path = pathToAnalyze;
-		this.pathAbs = path.resolve(this.path);
-		this.pathBasename = path.basename(this.pathAbs);
+		// Handle multiple paths or default to current directory
+		const inputPaths = (Array.isArray(argv.paths) && argv.paths.length && argv.paths) ||
+			fileData.configuration?.paths || ["./"];
+
+		this.paths = inputPaths.map((pathToAnalyze: string) => {
+			// Remove trailing slash if present
+			const cleanPath = pathToAnalyze.endsWith("/") ? pathToAnalyze.slice(0, -1) : pathToAnalyze;
+			const absolutePath = path.resolve(cleanPath);
+
+			return {
+				relative: cleanPath,
+				absolute: absolutePath,
+				basename: path.basename(absolutePath),
+			};
+		});
 
 		this.pathBaseline = argv.pathBaseline || fileData.configuration?.basepathBaselineline || "./.owner-todo.yml";
+		this.pathBaselineAbs = path.resolve(this.pathBaseline);
 		this.stopFirstError = fileData.configuration?.stopFirstError || false;
 		this.exclude = excludeToRegex(fileData.exclude);
 		this.teams = fileData.teams || {};
@@ -107,7 +119,7 @@ export class Config {
 	toJSON() {
 		return {
 			configuration: {
-				path: this.path,
+				paths: this.paths,
 				pathBaseline: this.pathBaseline,
 				stopFirstError: this.stopFirstError,
 				debug: this.debug,
