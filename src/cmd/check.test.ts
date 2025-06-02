@@ -27,7 +27,7 @@ describe("findOwner", () => {
 	});
 
 	it("baseline match return symbol", () => {
-		expect(cmd.findOwner({}, new Baseline("/root", { files: ["./baseline.png"] }), "./baseline.png")).toBe(
+		expect(cmd.findOwner({}, new Baseline("/root", { files: ["baseline.png"] }), "baseline.png")).toBe(
 			cmd.MATCH_BASELINE,
 		);
 	});
@@ -35,31 +35,57 @@ describe("findOwner", () => {
 
 describe("assembleAllRegExp", () => {
 	it("empty feature returns empty map", () => {
-		const config = new Config({ paths: ["./test-dir"], config: "" }, {});
+		const config = new Config({ paths: ["test-dir"], config: "" }, {});
 		const result = cmd.assembleAllRegExp(config);
 		expect(result).toEqual({});
 	});
-	it("feature with files returns map with file regexps", () => {
+
+	it("should handle glob patterns", () => {
 		const config = new Config(
 			{ paths: ["./test-dir"], config: "" },
 			{
 				features: {
-					donut: {
-						files: ["bob.png", "something/.*", "something/else.txt"],
-						owner: "donut",
+					bob: {
+						files: ["utils/**"],
+						owner: "donut-team",
 					},
 				},
 			},
 		);
+
 		const result = cmd.assembleAllRegExp(config);
-		expect(result).toEqual({
-			donut: new RegExp("bob.png|something/.*|something/else.txt"),
-		});
+		expect(result).toMatchInlineSnapshot(`
+			{
+			  "donut-team": /\\^utils\\(\\?:\\\\/\\|\\(\\?:\\(\\?!\\(\\?:\\\\/\\|\\^\\)\\\\\\.\\)\\.\\)\\*\\?\\)\\?\\$/,
+			}
+		`);
+	});
+
+	it("should handle complex glob patterns without throwing syntax errors", () => {
+		const config = new Config(
+			{ paths: ["./test-dir"], config: "" },
+			{
+				features: {
+					ai_team: {
+						files: ["**/*display_image*.*"],
+						owner: "ai-team",
+					},
+				},
+			},
+		);
+
+		// This should not throw a SyntaxError: Invalid regular expression
+		expect(() => cmd.assembleAllRegExp(config)).not.toThrow();
+
+		const result = cmd.assembleAllRegExp(config);
+		expect(result).toHaveProperty("ai-team");
+		expect(result["ai-team"]).toBeInstanceOf(RegExp);
 	});
 });
 
 describe("runTest", () => {
-	const files = ["./src/main.cpp", "./src/utils/str.cpp", "./src/utils/tax.cpp", "./readme.md"];
+	const files = ["src/main.cpp", "src/utils/str.cpp", "src/utils/tax.cpp", "readme.md"];
+
 	beforeAll(() => {
 		fs.mkdirSync("./src/utils", { recursive: true });
 		for (const file of files) {
@@ -83,7 +109,7 @@ describe("runTest", () => {
 			{
 				features: {
 					billing: {
-						files: [".*/tax.cpp"],
+						files: ["**/tax.cpp"],
 						owner: "donut",
 					},
 				},
@@ -93,13 +119,13 @@ describe("runTest", () => {
 		expect(result).toMatchInlineSnapshot(`
 			[
 			  OErrorFileNoOwner {
-			    "filePath": "./src/main.cpp",
+			    "filePath": "./main.cpp",
 			  },
 			  OErrorFileNoOwner {
-			    "filePath": "./src/utils/str.cpp",
+			    "filePath": "./utils/str.cpp",
 			  },
 			  OErrorFileNoOwner {
-			    "filePath": "./readme.md",
+			    "filePath": "readme.md",
 			  },
 			]
 		`);
@@ -107,21 +133,21 @@ describe("runTest", () => {
 
 	it("file found in the baseline are ignored", () => {
 		const config = new Config(
-			{ paths: ["./src"], config: "" },
+			{ paths: ["src"], config: "" },
 			{
 				features: {
 					billing: {
-						files: [".*/tax.cpp", "./src/main.cpp"],
+						files: ["**/tax.cpp", "src/main.cpp"],
 						owner: "donut",
 					},
 				},
 			},
 		);
-		const result = cmd.runTest(config, new Baseline("/root", { files: ["./readme.md"] }), files);
+		const result = cmd.runTest(config, new Baseline("/root", { files: ["readme.md"] }), files);
 		expect(result).toMatchInlineSnapshot(`
 			[
 			  OErrorFileNoOwner {
-			    "filePath": "./src/utils/str.cpp",
+			    "filePath": "./utils/str.cpp",
 			  },
 			]
 		`);

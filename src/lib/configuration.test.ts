@@ -49,11 +49,8 @@ describe("parseConfig", () => {
 		const conf = parseConfig({ config: p, paths: ["./"], debug: true });
 		expect(conf.paths).toHaveLength(1);
 		expect(conf.paths[0].relative).toBe(".");
-		expect(conf.paths[0].absolute).toBe(path.resolve("."));
 		const confJson = conf.toJSON();
 		// @TODO figure out how to actually test this without hardcoding a path in the snapshot
-		// @ts-expect-error
-		confJson.configuration.paths[0].absolute = "ABSOLUTE_PATH";
 		expect(confJson).toMatchSnapshot();
 	});
 
@@ -63,12 +60,12 @@ describe("parseConfig", () => {
 
 		const conf = parseConfig({ config: p, paths: ["./src", "./lib", "./test.js"], debug: true });
 		expect(conf.paths).toHaveLength(3);
-		expect(conf.paths[0].relative).toBe("./src");
-		expect(conf.paths[1].relative).toBe("./lib");
-		expect(conf.paths[2].relative).toBe("./test.js");
-		expect(conf.paths[0].absolute).toBe(path.resolve("./src"));
-		expect(conf.paths[1].absolute).toBe(path.resolve("./lib"));
-		expect(conf.paths[2].absolute).toBe(path.resolve("./test.js"));
+		expect(conf.paths[0].relative).toBe("src");
+		expect(conf.paths[1].relative).toBe("lib");
+		expect(conf.paths[2].relative).toBe("test.js");
+		expect(conf.paths[0].relative).toBe("src");
+		expect(conf.paths[1].relative).toBe("lib");
+		expect(conf.paths[2].relative).toBe("test.js");
 	});
 
 	it("should default to current directory when no paths provided", () => {

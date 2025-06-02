@@ -1,6 +1,7 @@
 import chalk from "chalk";
 // @ts-expect-error
 import type { Arguments, Argv } from "yargs";
+import { minimatch } from "minimatch";
 import { parseConfig } from "../lib/configuration.ts";
 import type { Config } from "../lib/configuration.ts";
 import { initialize as initializeBaseline, type Baseline, saveBaseline } from "../lib/baseline.ts";
@@ -46,6 +47,7 @@ export const handler = defaultHandler(async (argv: Arguments<CheckOptions>) => {
 		for (const error of errors) {
 			log.error("  ", chalk.red("[X]"), error.message());
 		}
+		log.error(filesPathToTest.length, "files", errors.length, "errors");
 	} else {
 		log.info(chalk.green("[✓]"), "No errors found");
 	}
@@ -103,7 +105,7 @@ export function runTest(config: Config, baseline: Baseline, filesPathToTest: str
 		if (owner === null) {
 			log.debug(chalk.red("[X]"), fullFilePath, "has no owner");
 			// Use the first path's absolute path for backward compatibility
-			errors.push(new OErrorFileNoOwner(config.paths[0].absolute, fullFilePath));
+			errors.push(new OErrorFileNoOwner(config.paths[0].relative, fullFilePath));
 		} else if (owner === MATCH_BASELINE) {
 			log.debug(chalk.grey("[✓]"), fullFilePath, "is in the baseline");
 		} else {
@@ -124,9 +126,18 @@ type RegExpMap = { [team: string]: RegExp };
 export function assembleAllRegExp(config: Config): RegExpMap {
 	const allRegExp: RegExpMap = {};
 	for (const feature of Object.values(config.features)) {
-		const pattern = feature.files.join("|");
-		const featureRegExp = new RegExp(pattern);
-		allRegExp[feature.owner] = featureRegExp;
+		// Convert each glob pattern to regex and combine them
+		const regexPatterns = feature.files
+			.map((filePattern) => {
+				const regex = minimatch.makeRe(filePattern);
+				return regex ? regex.source : null;
+			})
+			.filter((source): source is string => source !== null);
+
+		if (regexPatterns.length > 0) {
+			const combinedPattern = regexPatterns.join("|");
+			allRegExp[feature.owner] = new RegExp(combinedPattern);
+		}
 	}
 	return allRegExp;
 }

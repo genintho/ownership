@@ -48,7 +48,7 @@ export function parseConfig(argv: argvType): Config {
 	if (config.quiet) log.setLevel("quiet");
 	if (config.debug) log.setLevel("debug");
 
-	log.debug("Configuration from config file", JSON.stringify(configFileContent));
+	log.debug(JSON.stringify(config.toJSON(), null, 2));
 
 	return config;
 }
@@ -74,7 +74,7 @@ export class Config {
 	public readonly quiet;
 	public readonly paths: ReadonlyArray<{
 		readonly relative: string;
-		readonly absolute: string;
+		// readonly absolute: string;
 		readonly basename: string;
 	}>;
 	public readonly pathBaseline: string;
@@ -104,17 +104,19 @@ export class Config {
 
 		this.paths = inputPaths.map((pathToAnalyze: string) => {
 			// Remove trailing slash if present
-			const cleanPath = pathToAnalyze.endsWith("/") ? pathToAnalyze.slice(0, -1) : pathToAnalyze;
+			let cleanPath = pathToAnalyze.endsWith("/") ? pathToAnalyze.slice(0, -1) : pathToAnalyze;
+			cleanPath = cleanPath.startsWith("./") ? cleanPath.slice(2) : cleanPath;
+
 			const absolutePath = path.resolve(cleanPath);
 
 			return {
 				relative: cleanPath,
-				absolute: absolutePath,
+				// absolute: absolutePath,
 				basename: path.basename(absolutePath),
 			};
 		});
 
-		this.pathBaseline = argv.pathBaseline || fileData.configuration?.basepathBaselineline || "./.owner-todo.yml";
+		this.pathBaseline = argv.pathBaseline || fileData.configuration?.basepathBaselineline || ".owner-todo.yml";
 		this.pathBaselineAbs = path.resolve(this.pathBaseline);
 		this.stopFirstError = fileData.configuration?.stopFirstError || false;
 		this.exclude = excludeToRegex(fileData.exclude);

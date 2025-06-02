@@ -5,7 +5,7 @@ import * as fs from "node:fs";
 export function initialize(config: Config) {
 	const todoFile = config.pathBaselineAbs;
 	if (!fs.existsSync(todoFile)) {
-		return new Baseline(config.paths[0].absolute, {});
+		return new Baseline(config.paths[0].relative, {});
 	}
 	const todoFileContent = fs.readFileSync(todoFile, "utf8");
 	const todos = YamlLoad(todoFileContent);

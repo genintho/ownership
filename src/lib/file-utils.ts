@@ -94,7 +94,7 @@ export async function computePathToTest(config: Config): Promise<string[]> {
 
 	// Process each path in the config.paths array
 	for (const pathInfo of config.paths) {
-		log.debug("Processing path:", pathInfo.relative, "->", pathInfo.absolute);
+		log.debug("Processing path:", pathInfo.relative, "->", pathInfo.relative);
 
 		// eslint-disable-next-line no-await-in-loop
 		const filesFromPath = await computePathToTestSingle(pathInfo, config.exclude);
@@ -109,12 +109,12 @@ export async function computePathToTest(config: Config): Promise<string[]> {
  * Helper function to process a single path and return its files
  */
 async function computePathToTestSingle(
-	pathInfo: { relative: string; absolute: string; basename: string },
+	pathInfo: { relative: string; basename: string },
 	exclude: RegExp[],
 ): Promise<string[]> {
 	return new Promise((resolve) => {
-		if (fs.statSync(pathInfo.absolute).isDirectory()) {
-			log.debug("Path is a directory, recursively crawl:", pathInfo.absolute);
+		if (fs.statSync(pathInfo.relative).isDirectory()) {
+			log.debug("Path is a directory, recursively crawl:", pathInfo.relative);
 			const queue = new Queue({
 				concurrency: 2,
 				exclude: exclude,
@@ -122,11 +122,10 @@ async function computePathToTestSingle(
 					resolve(files);
 				},
 			});
-			queue.add(pathInfo.absolute);
-			return;
+			queue.add(pathInfo.relative);
+		} else {
+			log.debug("Path is a file, return the path to test:", pathInfo.relative);
+			resolve([pathInfo.relative]);
 		}
-
-		log.debug("Path is a file, return the path to test:", pathInfo.absolute);
-		resolve([pathInfo.absolute]);
 	});
 }
