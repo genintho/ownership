@@ -6,10 +6,7 @@ exports[`parseConfig > generate a default config 1`] = `
     "debug": true,
     "pathBaseline": ".owner-todo.yml",
     "paths": [
-      {
-        "basename": "owner",
-        "relative": ".",
-      },
+      "target_path",
     ],
     "quiet": false,
     "stopFirstError": false,

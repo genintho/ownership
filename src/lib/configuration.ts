@@ -3,7 +3,7 @@ import { load as YamlLoad } from "js-yaml";
 import { fileURLToPath } from "node:url";
 import * as path from "node:path";
 import { log } from "./log.ts";
-import { OErrorDebugAndQuiet, OErrorNoConfig } from "./errors.ts";
+import { OErrorDebugAndQuiet, OErrorNoConfig, OErrorNoPaths } from "./errors.ts";
 import { minimatch } from "minimatch";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -72,11 +72,12 @@ function excludeToRegex(excludes: string[] | null = []): RegExp[] {
 export class Config {
 	public readonly debug;
 	public readonly quiet;
-	public readonly paths: ReadonlyArray<{
-		readonly relative: string;
-		// readonly absolute: string;
-		readonly basename: string;
-	}>;
+	/**
+	 * The root of the project, aka the folder in which the command is being called
+	 * Used to compute the relative path of the files
+	 */
+	public readonly root: string;
+	public readonly paths: ReadonlyArray<string>;
 	public readonly pathBaseline: string;
 	public readonly pathBaselineAbs: string;
 	public readonly stopFirstError: boolean;
@@ -94,26 +95,27 @@ export class Config {
 	constructor(argv: argvType, fileData: any) {
 		this.debug = argv.debug || fileData.configuration?.debug || false;
 		this.quiet = argv.quiet || fileData.configuration?.quiet || false;
+		this.root = process.cwd();
+
+		log.debug("Root", this.root);
+
 		if (this.debug && this.quiet) {
 			throw new OErrorDebugAndQuiet();
 		}
 
-		// Handle multiple paths or default to current directory
-		const inputPaths = (Array.isArray(argv.paths) && argv.paths.length && argv.paths) ||
-			fileData.configuration?.paths || ["./"];
+		// Passing paths to the CLI command takes priority over the ones in the config file
+		// If no path is provided, default to the current directory
+		this.paths = (Array.isArray(argv.paths) && argv.paths.length && argv.paths) || fileData.configuration?.paths || [];
 
-		this.paths = inputPaths.map((pathToAnalyze: string) => {
-			// Remove trailing slash if present
-			let cleanPath = pathToAnalyze.endsWith("/") ? pathToAnalyze.slice(0, -1) : pathToAnalyze;
-			cleanPath = cleanPath.startsWith("./") ? cleanPath.slice(2) : cleanPath;
-
-			const absolutePath = path.resolve(cleanPath);
-
-			return {
-				relative: cleanPath,
-				// absolute: absolutePath,
-				basename: path.basename(absolutePath),
-			};
+		if (this.paths.length === 0) {
+			throw new OErrorNoPaths();
+		}
+		// Remove the leading ./ from the paths if found
+		this.paths = this.paths.map((path) => {
+			if (path === "./") {
+				return this.root;
+			}
+			return path.replace(/^\.\//, "");
 		});
 
 		this.pathBaseline = argv.pathBaseline || fileData.configuration?.basepathBaselineline || ".owner-todo.yml";

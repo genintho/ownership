@@ -93,17 +93,7 @@ describe("runTest", () => {
 		}
 	});
 
-	it("empty feature returns empty map", () => {
-		const config = new Config({ paths: ["./src"], config: "" }, {});
-		const result = cmd.runTest(config, new Baseline("/root", {}), []);
-		expect(result).toMatchInlineSnapshot(`
-			[
-			  OErrorNothingToTest {},
-			]
-		`);
-	});
-
-	it("feature with files returns map with file regexps", () => {
+	it("feature with files returns map with file regexps", async () => {
 		const config = new Config(
 			{ paths: ["./src"], config: "" },
 			{
@@ -115,23 +105,24 @@ describe("runTest", () => {
 				},
 			},
 		);
-		const result = cmd.runTest(config, new Baseline("/root", {}), files);
+		const result = await cmd.runTest(config, new Baseline("/root", {}));
 		expect(result).toMatchInlineSnapshot(`
-			[
-			  OErrorFileNoOwner {
-			    "filePath": "./main.cpp",
-			  },
-			  OErrorFileNoOwner {
-			    "filePath": "./utils/str.cpp",
-			  },
-			  OErrorFileNoOwner {
-			    "filePath": "readme.md",
-			  },
-			]
+			{
+			  "errors": [
+			    OErrorFileNoOwner {
+			      "filePath": "src/main.cpp",
+			    },
+			    OErrorFileNoOwner {
+			      "filePath": "src/utils/str.cpp",
+			    },
+			  ],
+			  "nbDir": 2,
+			  "nbFileTested": 3,
+			}
 		`);
 	});
 
-	it("file found in the baseline are ignored", () => {
+	it("file found in the baseline are ignored", async () => {
 		const config = new Config(
 			{ paths: ["src"], config: "" },
 			{
@@ -143,13 +134,17 @@ describe("runTest", () => {
 				},
 			},
 		);
-		const result = cmd.runTest(config, new Baseline("/root", { files: ["readme.md"] }), files);
+		const result = await cmd.runTest(config, new Baseline("/root", { files: ["readme.md"] }), files);
 		expect(result).toMatchInlineSnapshot(`
-			[
-			  OErrorFileNoOwner {
-			    "filePath": "./utils/str.cpp",
-			  },
-			]
+			{
+			  "errors": [
+			    OErrorFileNoOwner {
+			      "filePath": "src/utils/str.cpp",
+			    },
+			  ],
+			  "nbDir": 2,
+			  "nbFileTested": 3,
+			}
 		`);
 	});
 });

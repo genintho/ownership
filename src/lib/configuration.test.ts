@@ -3,7 +3,7 @@ import { parseConfig } from "./configuration.ts";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as fs from "node:fs";
-import { OErrorNoConfig } from "./errors.ts";
+import { OErrorNoConfig, OErrorNoPaths } from "./errors.ts";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -46,9 +46,9 @@ describe("parseConfig", () => {
 		const p = path.join(testDir, "conf.yaml");
 		fs.writeFileSync(p, "{}");
 
-		const conf = parseConfig({ config: p, paths: ["./"], debug: true });
+		const conf = parseConfig({ config: p, paths: ["./target_path"], debug: true });
 		expect(conf.paths).toHaveLength(1);
-		expect(conf.paths[0].relative).toBe(".");
+		expect(conf.root).toBe(process.cwd());
 		const confJson = conf.toJSON();
 		// @TODO figure out how to actually test this without hardcoding a path in the snapshot
 		expect(confJson).toMatchSnapshot();
@@ -60,20 +60,15 @@ describe("parseConfig", () => {
 
 		const conf = parseConfig({ config: p, paths: ["./src", "./lib", "./test.js"], debug: true });
 		expect(conf.paths).toHaveLength(3);
-		expect(conf.paths[0].relative).toBe("src");
-		expect(conf.paths[1].relative).toBe("lib");
-		expect(conf.paths[2].relative).toBe("test.js");
-		expect(conf.paths[0].relative).toBe("src");
-		expect(conf.paths[1].relative).toBe("lib");
-		expect(conf.paths[2].relative).toBe("test.js");
+		expect(conf.paths[0]).toBe("src");
+		expect(conf.paths[1]).toBe("lib");
+		expect(conf.paths[2]).toBe("test.js");
 	});
 
-	it("should default to current directory when no paths provided", () => {
+	it("a path must", () => {
 		const p = path.join(testDir, "conf.yaml");
 		fs.writeFileSync(p, "{}");
 
-		const conf = parseConfig({ config: p, paths: [] });
-		expect(conf.paths).toHaveLength(1);
-		expect(conf.paths[0].relative).toBe(".");
+		expect(() => parseConfig({ config: p, paths: [] })).toThrow(OErrorNoPaths);
 	});
 });

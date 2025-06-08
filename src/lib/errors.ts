@@ -6,9 +6,9 @@ export class OError {
 
 export class OErrorFileNoOwner extends OError {
 	public readonly filePath: string;
-	constructor(root: string, filePath: string) {
+	constructor(filePath: string) {
 		super();
-		this.filePath = filePath.replace(root, ".");
+		this.filePath = filePath;
 	}
 	message(): string {
 		return this.filePath + " has no owner";
@@ -30,5 +30,11 @@ export class OErrorDebugAndQuiet extends OError {
 export class OErrorNoConfig extends OError {
 	message() {
 		return "No Configuration file found. Run the command `init` to generate one.";
+	}
+}
+
+export class OErrorNoPaths extends OError {
+	message() {
+		return "A Path must be provided";
 	}
 }
