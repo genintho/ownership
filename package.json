@@ -1,7 +1,9 @@
 {
 	"name": "owner",
 	"version": "1.0.0",
-	"main": "main.ts",
+	"bin": {
+		"ownership": "src/main.ts"
+	},
 	"license": "MIT",
 	"type": "module",
 	"scripts": {
