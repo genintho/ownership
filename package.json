@@ -1,10 +1,12 @@
 {
-	"name": "owner",
-	"version": "1.0.0",
+	"name": "ownership",
 	"bin": {
 		"ownership": "src/main.ts"
 	},
-	"license": "MIT",
+	"files": [
+		"src/**/*.ts",
+		"!src/**/*.test.ts"
+	],
 	"type": "module",
 	"scripts": {
 		"test": "vitest",
@@ -33,5 +35,23 @@
 		"minimatch": "^10.0.1",
 		"yargs": "^17.7.2"
 	},
-	"packageManager": "yarn@4.9.2"
+	"packageManager": "yarn@4.9.2",
+	"engines": {
+		"node": ">=23.0.0"
+	},
+	"license": "MIT",
+	"description": "Define ownership of files and dependencies in a project.",
+	"author": "Thomas Genin",
+	"homepage": "https://github.com/genintho/ownership",
+	"version": "0.1.0",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/genintho/ownership.git"
+	},
+	"keywords": [
+		"ownership",
+		"dependencies",
+		"files",
+		"project"
+	]
 }
