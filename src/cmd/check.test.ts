@@ -6,7 +6,7 @@ import { Baseline } from "../lib/baseline.ts";
 
 function gen(str: string) {
 	return {
-		file: new Map(),
+		file: {},
 		dir: {},
 		other: {
 			donut: new RegExp(str),
@@ -41,10 +41,37 @@ describe("assembleAllRegExp", () => {
 	it("empty feature returns empty map", () => {
 		const config = new Config({ paths: ["test-dir"], config: "" }, {});
 		const result = cmd.assembleAllRegExp(config);
-		expect(result).toEqual({ dir: {}, other: {}, file: new Map() });
+		expect(result).toEqual({ dir: {}, other: {}, file: {} });
 	});
 
-	it("should handle glob patterns", () => {
+	it("should handle file patterns", () => {
+		const config = new Config(
+			{ paths: ["./test-dir"], config: "" },
+			{
+				features: {
+					bob: {
+						files: ["utils/bob.png"],
+						owner: "donut-team",
+					},
+				},
+			},
+		);
+
+		const result = cmd.assembleAllRegExp(config);
+		expect(result).toMatchInlineSnapshot(`
+			{
+			  "dir": {},
+			  "file": {
+			    "donut-team": Set {
+			      "^utils\\/bob\\.png$",
+			    },
+			  },
+			  "other": {},
+			}
+		`);
+	});
+
+	it("should handle directory patterns", () => {
 		const config = new Config(
 			{ paths: ["./test-dir"], config: "" },
 			{
@@ -60,10 +87,35 @@ describe("assembleAllRegExp", () => {
 		const result = cmd.assembleAllRegExp(config);
 		expect(result).toMatchInlineSnapshot(`
 			{
-			  "dir": {},
-			  "file": Map {},
-			  "other": {
+			  "dir": {
 			    "donut-team": /\\^utils\\(\\?:\\\\/\\|\\(\\?:\\(\\?!\\(\\?:\\\\/\\|\\^\\)\\\\\\.\\)\\.\\)\\*\\?\\)\\?\\$/,
+			  },
+			  "file": {},
+			  "other": {},
+			}
+		`);
+	});
+
+	it("should handle other patterns", () => {
+		const config = new Config(
+			{ paths: ["./test-dir"], config: "" },
+			{
+				features: {
+					bob: {
+						files: ["utils[ba]/**"],
+						owner: "donut-team",
+					},
+				},
+			},
+		);
+
+		const result = cmd.assembleAllRegExp(config);
+		expect(result).toMatchInlineSnapshot(`
+			{
+			  "dir": {},
+			  "file": {},
+			  "other": {
+			    "donut-team": /\\^utils\\[ba\\]\\(\\?:\\\\/\\|\\(\\?:\\(\\?!\\(\\?:\\\\/\\|\\^\\)\\\\\\.\\)\\.\\)\\*\\?\\)\\?\\$/,
 			  },
 			}
 		`);
@@ -96,9 +148,28 @@ describe("isGlobForFolders", () => {
 		["file.png", false],
 		["**/bob.png", false],
 		["*/bob.png", false],
+		["bob/**", true],
+		["bob/*", true],
 		["**/bob/**", true],
+		["bob", true],
+		// @TODO [".git", true],
 	])("(%s) -> %d", (a, expected) => {
 		expect(cmd.isGlobForFolders(a)).toBe(expected);
+	});
+	// it.only("(%s) -> %d", () => {
+	// expect(cmd.isGlobForFolders("bob/**")).toBe(true);
+	// });
+});
+
+describe("isExactFilePattern", () => {
+	it.each([
+		["file.png", true],
+		["bob/file.png", true],
+		["**/bob.png", false],
+		["*/bob.png", false],
+		["**/bob/**", false],
+	])("(%s) -> %d", (a, expected) => {
+		expect(cmd.isExactFilePattern(a)).toBe(expected);
 	});
 });
 
@@ -147,13 +218,13 @@ describe("runTest", () => {
 			{
 				features: {
 					billing: {
-						files: ["**/tax.cpp", "src/main.cpp"],
+						files: ["**/tax.cpp"],
 						owner: "donut",
 					},
 				},
 			},
 		);
-		const result = await cmd.runTest(config, new Baseline({ files: ["readme.md"] }));
+		const result = await cmd.runTest(config, new Baseline({ files: ["src/main.cpp"] }));
 		expect(result).toMatchInlineSnapshot(`
 			{
 			  "errors": [

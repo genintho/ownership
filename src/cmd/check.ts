@@ -117,7 +117,7 @@ export async function runTest(
 type RegExpMap = { [team: string]: RegExp };
 
 type OptiRegExpMap = {
-	file: Map<string, string>;
+	file: { [team: string]: Set<string> };
 	dir: RegExpMap;
 	other: RegExpMap;
 };
@@ -146,6 +146,15 @@ export function assembleAllRegExp(config: Config): OptiRegExpMap {
 				log.warn("Invalid glob pattern", filePattern);
 				continue;
 			}
+
+			if (isExactFilePattern(filePattern)) {
+				if (!tmp.file[feature.owner]) {
+					tmp.file[feature.owner] = [];
+				}
+				tmp.file[feature.owner].push(regex.source);
+				continue;
+			}
+
 			// test if this regex match a directory
 			if (isGlobForFolders(filePattern)) {
 				if (!tmp.dir[feature.owner]) {
@@ -170,11 +179,14 @@ export function assembleAllRegExp(config: Config): OptiRegExpMap {
 	}
 
 	const allRegExp: OptiRegExpMap = {
-		file: new Map(),
+		file: {},
 		dir: {},
 		other: {},
 	};
 
+	for (const [team, arrReg] of Object.entries(tmp.file)) {
+		allRegExp.file[team] = new Set(arrReg);
+	}
 	for (const [team, arrReg] of Object.entries(tmp.dir)) {
 		const combinedPattern = arrReg.join("|");
 		allRegExp.dir[team] = new RegExp(combinedPattern);
@@ -196,6 +208,12 @@ export function findOwner(
 		return MATCH_BASELINE;
 	}
 
+	for (const [team, fileSet] of Object.entries(regexps.file)) {
+		if (fileSet.has(file)) {
+			return team;
+		}
+	}
+
 	for (const [team, regexp] of Object.entries(regexps.other)) {
 		if (regexp.test(file)) {
 			return team;
@@ -213,6 +231,15 @@ export function findDirOwner(regexps: OptiRegExpMap, dirPath: string): string | 
 	return null;
 }
 
+export function isExactFilePattern(pattern: string): boolean {
+	const hasWildcards = /[*?[\]{}]/.test(pattern);
+
+	if (hasWildcards) {
+		return false;
+	}
+	return true;
+}
+
 export function isGlobForFolders(globPattern: string): boolean {
 	// Remove trailing wildcards and slashes
 	let cleanPattern = globPattern.replace(/\/\*+$/, "").replace(/\/$/, "");
@@ -220,22 +247,20 @@ export function isGlobForFolders(globPattern: string): boolean {
 	// Split by path separator
 	const parts = cleanPattern.split("/");
 
+	// Check file, aka extensions
+	// @todo, handle file starting with dot, like .git
 	if (parts[parts.length - 1].includes(".")) {
 		return false;
 	}
 
-	if (parts.length > 1) {
-		const lastPart = parts[parts.length - 1];
-
-		// Check if last part contains glob wildcards
-		const hasWildcards = /[*?[\]{}]/.test(lastPart);
-
-		if (!hasWildcards && lastPart.length > 0) {
-			return true;
+	for (const part of parts) {
+		//
+		const hasSpecialChar = /[?[\]{}]/.test(part);
+		if (hasSpecialChar) {
+			return false;
 		}
 	}
-
-	return false;
+	return true;
 }
 
 class Queue {
