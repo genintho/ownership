@@ -34,7 +34,7 @@ export const handler = defaultHandler(async (argv: Arguments<CheckOptions>) => {
 	const config = parseConfig(argv);
 	const baseline = initializeBaseline(config);
 
-	const { errors, nbFileTested } = await runTest(config, baseline);
+	const { errors, nbDir, nbFileTested } = await runTest(config, baseline);
 
 	if (argv.updateBaseline) {
 		updateBaseline(config, baseline);
@@ -46,9 +46,9 @@ export const handler = defaultHandler(async (argv: Arguments<CheckOptions>) => {
 		for (const error of errors) {
 			log.error("  ", chalk.red("[X]"), error.message());
 		}
-		log.error(nbFileTested, "file tested", errors.length, "errors");
+		log.error(errors.length, "errors", nbDir, "directories", nbFileTested, "files tested");
 	} else {
-		log.info(chalk.green("[✓]"), "No errors found");
+		log.info(chalk.green("[✓]"), "No errors found", nbDir, "directories", nbFileTested, "files tested");
 	}
 
 	const unneededFileRecord = baseline.unneededFileRecord;
@@ -116,36 +116,126 @@ export async function runTest(
 
 type RegExpMap = { [team: string]: RegExp };
 
-export function assembleAllRegExp(config: Config): RegExpMap {
-	const allRegExp: RegExpMap = {};
-	for (const feature of Object.values(config.features)) {
-		// Convert each glob pattern to regex and combine them
-		const regexPatterns = feature.files
-			.map((filePattern) => {
-				const regex = minimatch.makeRe(filePattern);
-				return regex ? regex.source : null;
-			})
-			.filter((source): source is string => source !== null);
+type OptiRegExpMap = {
+	file: Map<string, string>;
+	dir: RegExpMap;
+	other: RegExpMap;
+};
 
-		if (regexPatterns.length > 0) {
-			const combinedPattern = regexPatterns.join("|");
-			allRegExp[feature.owner] = new RegExp(combinedPattern);
+export function assembleAllRegExp(config: Config): OptiRegExpMap {
+	const tmp: {
+		file: { [team: string]: string[] };
+		dir: { [team: string]: string[] };
+		other: { [team: string]: string[] };
+	} = {
+		file: {},
+		dir: {},
+		other: {},
+	};
+
+	const ownerlessFeatures = [];
+	for (const [feature_name, feature] of Object.entries(config.features)) {
+		if (!feature.owner) {
+			ownerlessFeatures.push(feature_name);
+			continue;
+		}
+
+		for (const filePattern of feature.files) {
+			const regex = minimatch.makeRe(filePattern);
+			if (!regex) {
+				log.warn("Invalid glob pattern", filePattern);
+				continue;
+			}
+			// test if this regex match a directory
+			if (isGlobForFolders(filePattern)) {
+				if (!tmp.dir[feature.owner]) {
+					tmp.dir[feature.owner] = [];
+				}
+				tmp.dir[feature.owner].push(regex.source);
+				continue;
+			}
+
+			if (!tmp.other[feature.owner]) {
+				tmp.other[feature.owner] = [];
+			}
+			tmp.other[feature.owner].push(regex.source);
 		}
 	}
+
+	if (ownerlessFeatures.length > 0) {
+		log.warn("Invalid configuration.");
+		log.warn(`The following features in the configuration file have no owner:`, ownerlessFeatures.join(", "));
+		log.warn("Please assign an owner to each feature.");
+		// process.exit(1);
+	}
+
+	const allRegExp: OptiRegExpMap = {
+		file: new Map(),
+		dir: {},
+		other: {},
+	};
+
+	for (const [team, arrReg] of Object.entries(tmp.dir)) {
+		const combinedPattern = arrReg.join("|");
+		allRegExp.dir[team] = new RegExp(combinedPattern);
+	}
+	for (const [team, arrReg] of Object.entries(tmp.other)) {
+		const combinedPattern = arrReg.join("|");
+		allRegExp.other[team] = new RegExp(combinedPattern);
+	}
+
 	return allRegExp;
 }
 
-export function findOwner(regexps: RegExpMap, baseline: Baseline, file: string): string | null | typeof MATCH_BASELINE {
+export function findOwner(
+	regexps: OptiRegExpMap,
+	baseline: Baseline,
+	file: string,
+): string | null | typeof MATCH_BASELINE {
 	if (baseline.check(file)) {
 		return MATCH_BASELINE;
 	}
 
-	for (const [team, regexp] of Object.entries(regexps)) {
+	for (const [team, regexp] of Object.entries(regexps.other)) {
 		if (regexp.test(file)) {
 			return team;
 		}
 	}
 	return null;
+}
+
+export function findDirOwner(regexps: OptiRegExpMap, dirPath: string): string | null {
+	for (const [team, regexp] of Object.entries(regexps.dir)) {
+		if (regexp.test(dirPath)) {
+			return team;
+		}
+	}
+	return null;
+}
+
+export function isGlobForFolders(globPattern: string): boolean {
+	// Remove trailing wildcards and slashes
+	let cleanPattern = globPattern.replace(/\/\*+$/, "").replace(/\/$/, "");
+
+	// Split by path separator
+	const parts = cleanPattern.split("/");
+
+	if (parts[parts.length - 1].includes(".")) {
+		return false;
+	}
+
+	if (parts.length > 1) {
+		const lastPart = parts[parts.length - 1];
+
+		// Check if last part contains glob wildcards
+		const hasWildcards = /[*?[\]{}]/.test(lastPart);
+
+		if (!hasWildcards && lastPart.length > 0) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 class Queue {
@@ -157,7 +247,7 @@ class Queue {
 	private nbFileTested = 0;
 	private nbDir = 0;
 	private results: OError[] = [];
-	private ownerRules: RegExpMap;
+	private ownerRules: OptiRegExpMap;
 	private baseline: Baseline;
 
 	constructor({
@@ -170,7 +260,7 @@ class Queue {
 		concurrency: number;
 		exclude: RegExp[];
 		onFinish: (results: OError[], nbFileTested: number, nbDir: number) => void;
-		ownerRules: RegExpMap;
+		ownerRules: OptiRegExpMap;
 		baseline: Baseline;
 	}) {
 		this.concurrency = concurrency;
@@ -231,9 +321,9 @@ class Queue {
 			// Use the first path's absolute path for backward compatibility
 			this.results.push(new OErrorFileNoOwner(pathToScan));
 		} else if (owner === MATCH_BASELINE) {
-			log.debug(chalk.grey("[✓]"), pathToScan, "is in the baseline");
+			log.debug(chalk.grey("[✓]"), "File:", pathToScan, "is in the baseline");
 		} else {
-			log.debug(chalk.green("[✓]"), pathToScan, "owner:", chalk.blue(owner));
+			log.debug(chalk.green("[✓]"), "File:", pathToScan, "owner:", chalk.blue(owner));
 		}
 
 		// @TODO
@@ -249,6 +339,14 @@ class Queue {
 	async processDir(pathToScan: string) {
 		this.nbDir++;
 		log.debug("Dir tested:", pathToScan);
+
+		const owner = findDirOwner(this.ownerRules, pathToScan);
+		if (owner !== null) {
+			log.debug(chalk.green("[✓]"), "Dir:", pathToScan, "owner:", chalk.blue(owner));
+			this.running.delete(pathToScan);
+			this.ping();
+			return;
+		}
 		try {
 			const dirEntries = await fs.promises.readdir(pathToScan);
 

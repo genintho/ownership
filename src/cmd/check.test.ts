@@ -4,30 +4,34 @@ import { Config } from "../lib/configuration.ts";
 import * as fs from "node:fs";
 import { Baseline } from "../lib/baseline.ts";
 
+function gen(str: string) {
+	return {
+		file: new Map(),
+		dir: {},
+		other: {
+			donut: new RegExp(str),
+		},
+	};
+}
+
 describe("findOwner", () => {
 	it("match simple regexp", () => {
-		const regexps = {
-			donut: new RegExp("bob.png"),
-		};
-		expect(cmd.findOwner(regexps, new Baseline("/root", {}), "bob.png")).toBe("donut");
+		const regexps = gen("bob.png");
+		expect(cmd.findOwner(regexps, new Baseline({}), "bob.png")).toBe("donut");
 	});
 
 	it("match nested regexp", () => {
-		const regexps = {
-			donut: new RegExp("something|bob.png"),
-		};
-		expect(cmd.findOwner(regexps, new Baseline("/root", {}), "bob.png")).toBe("donut");
+		const regexps = gen("something|bob.png");
+		expect(cmd.findOwner(regexps, new Baseline({}), "bob.png")).toBe("donut");
 	});
 
 	it("return null on miss", () => {
-		const regexps = {
-			donut: new RegExp("bob.png"),
-		};
-		expect(cmd.findOwner(regexps, new Baseline("/root", {}), "null.png")).toBeNull();
+		const regexps = gen("bob.png");
+		expect(cmd.findOwner(regexps, new Baseline({}), "null.png")).toBeNull();
 	});
 
 	it("baseline match return symbol", () => {
-		expect(cmd.findOwner({}, new Baseline("/root", { files: ["baseline.png"] }), "baseline.png")).toBe(
+		expect(cmd.findOwner(gen("bob.png"), new Baseline({ files: ["baseline.png"] }), "baseline.png")).toBe(
 			cmd.MATCH_BASELINE,
 		);
 	});
@@ -37,7 +41,7 @@ describe("assembleAllRegExp", () => {
 	it("empty feature returns empty map", () => {
 		const config = new Config({ paths: ["test-dir"], config: "" }, {});
 		const result = cmd.assembleAllRegExp(config);
-		expect(result).toEqual({});
+		expect(result).toEqual({ dir: {}, other: {}, file: new Map() });
 	});
 
 	it("should handle glob patterns", () => {
@@ -56,7 +60,11 @@ describe("assembleAllRegExp", () => {
 		const result = cmd.assembleAllRegExp(config);
 		expect(result).toMatchInlineSnapshot(`
 			{
-			  "donut-team": /\\^utils\\(\\?:\\\\/\\|\\(\\?:\\(\\?!\\(\\?:\\\\/\\|\\^\\)\\\\\\.\\)\\.\\)\\*\\?\\)\\?\\$/,
+			  "dir": {},
+			  "file": Map {},
+			  "other": {
+			    "donut-team": /\\^utils\\(\\?:\\\\/\\|\\(\\?:\\(\\?!\\(\\?:\\\\/\\|\\^\\)\\\\\\.\\)\\.\\)\\*\\?\\)\\?\\$/,
+			  },
 			}
 		`);
 	});
@@ -78,8 +86,19 @@ describe("assembleAllRegExp", () => {
 		expect(() => cmd.assembleAllRegExp(config)).not.toThrow();
 
 		const result = cmd.assembleAllRegExp(config);
-		expect(result).toHaveProperty("ai-team");
-		expect(result["ai-team"]).toBeInstanceOf(RegExp);
+		expect(result.other).toHaveProperty("ai-team");
+		expect(result.other["ai-team"]).toBeInstanceOf(RegExp);
+	});
+});
+
+describe("isGlobForFolders", () => {
+	it.each([
+		["file.png", false],
+		["**/bob.png", false],
+		["*/bob.png", false],
+		["**/bob/**", true],
+	])("(%s) -> %d", (a, expected) => {
+		expect(cmd.isGlobForFolders(a)).toBe(expected);
 	});
 });
 
@@ -105,7 +124,7 @@ describe("runTest", () => {
 				},
 			},
 		);
-		const result = await cmd.runTest(config, new Baseline("/root", {}));
+		const result = await cmd.runTest(config, new Baseline({}));
 		expect(result).toMatchInlineSnapshot(`
 			{
 			  "errors": [
@@ -134,7 +153,7 @@ describe("runTest", () => {
 				},
 			},
 		);
-		const result = await cmd.runTest(config, new Baseline("/root", { files: ["readme.md"] }), files);
+		const result = await cmd.runTest(config, new Baseline({ files: ["readme.md"] }));
 		expect(result).toMatchInlineSnapshot(`
 			{
 			  "errors": [

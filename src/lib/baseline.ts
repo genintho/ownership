@@ -5,12 +5,12 @@ import * as fs from "node:fs";
 export function initialize(config: Config) {
 	const todoFile = config.pathBaselineAbs;
 	if (!fs.existsSync(todoFile)) {
-		return new Baseline(config.paths[0].relative, {});
+		return new Baseline({});
 	}
 	const todoFileContent = fs.readFileSync(todoFile, "utf8");
 	const todos = YamlLoad(todoFileContent);
 	// @ts-expect-error
-	return new Baseline(config.paths[0].absolute, todos);
+	return new Baseline(todos);
 }
 
 export function saveBaseline(config: Config, baseline: Baseline) {
@@ -23,15 +23,13 @@ export class Baseline {
 	private readonly existingFileRecords: Set<string>;
 	public readonly filesToAdd: Set<string> = new Set();
 	private readonly filesToKeep: Set<string> = new Set();
-	private readonly pathAbs: string;
-	constructor(pathAbs: string, json: { version?: number; files?: string[] } = {}) {
+	constructor(json: { version?: number; files?: string[] } = {}) {
 		this.version = json.version || 1;
-		this.pathAbs = pathAbs;
 		this.existingFileRecords = new Set(json.files || []);
 	}
 
 	check(file: string) {
-		const relativeFile = file.replace(this.pathAbs, ".");
+		const relativeFile = file;
 		if (this.existingFileRecords.has(relativeFile)) {
 			this.filesToKeep.add(relativeFile);
 			return true;

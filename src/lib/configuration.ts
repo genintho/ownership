@@ -18,7 +18,7 @@ type argvType = {
 };
 
 export function parseConfig(argv: argvType): Config {
-	if (argv.debug) {
+	if (argv.debug === true) {
 		log.setLevel("debug");
 	}
 
@@ -48,7 +48,7 @@ export function parseConfig(argv: argvType): Config {
 	if (config.quiet) log.setLevel("quiet");
 	if (config.debug) log.setLevel("debug");
 
-	log.debug(JSON.stringify(config.toJSON(), null, 2));
+	log.debug("Computed Config", JSON.stringify(config.toJSON(), null, 2));
 
 	return config;
 }
