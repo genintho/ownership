@@ -9,7 +9,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "tsup src/main.ts --format esm --minify",
-		"deploy": "yarn ci && yarn build && npm publish --access public --dry-run",
+		"deploy": "yarn ci && yarn build && chmod +x dist/main.js && npm publish --access public",
 		"test": "vitest",
 		"test:coverage": "vitest run --coverage",
 		"test:ui": "vitest --coverage --ui",
@@ -45,7 +45,7 @@
 	"description": "Define ownership of files and dependencies in a project.",
 	"author": "Thomas Genin",
 	"homepage": "https://github.com/genintho/ownership",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/genintho/ownership.git"

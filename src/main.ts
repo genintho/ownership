@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 // @ts-expect-error
 import yargs from "yargs";
 // @ts-expect-error
