@@ -40,12 +40,13 @@ describe("findOwner", () => {
 describe("Rule constructor", () => {
 	it("empty feature returns empty map", () => {
 		expect(new rule.Rules({})).toMatchInlineSnapshot(`
-      Rules {
-        "dirRules": {},
-        "fileRules": {},
-        "otherRules": {},
-      }
-    `);
+			Rules {
+			  "dirRules": {},
+			  "fileRules": {},
+			  "otherRules": {},
+			  "ownerlessFeatures": [],
+			}
+		`);
 	});
 
 	it("should handle file patterns", () => {
@@ -58,6 +59,7 @@ describe("Rule constructor", () => {
 			    },
 			  },
 			  "otherRules": {},
+			  "ownerlessFeatures": [],
 			}
 		`);
 	});
@@ -72,6 +74,7 @@ describe("Rule constructor", () => {
 			  },
 			  "fileRules": {},
 			  "otherRules": {},
+			  "ownerlessFeatures": [],
 			}
 		`);
 	});
@@ -86,6 +89,7 @@ describe("Rule constructor", () => {
 			      /\\^utils\\[ba\\]\\(\\?:\\\\/\\|\\(\\?:\\(\\?!\\(\\?:\\\\/\\|\\^\\)\\\\\\.\\)\\.\\)\\*\\?\\)\\?\\$/,
 			    ],
 			  },
+			  "ownerlessFeatures": [],
 			}
 		`);
 	});
@@ -100,6 +104,7 @@ describe("Rule constructor", () => {
 			      /\\^\\(\\?:\\\\/\\|\\(\\?:\\(\\?!\\(\\?:\\\\/\\|\\^\\)\\\\\\.\\)\\.\\)\\*\\?\\\\/\\)\\?\\(\\?!\\\\\\.\\)\\[\\^/\\]\\*\\?display_image\\[\\^/\\]\\*\\?\\\\\\.\\[\\^/\\]\\*\\?\\$/,
 			    ],
 			  },
+			  "ownerlessFeatures": [],
 			}
 		`);
 	});

@@ -5,6 +5,7 @@ export class Rules {
 	private readonly dirRules: { [team: string]: RegExp[] } = {};
 	private readonly fileRules: { [team: string]: Set<string> } = {};
 	private readonly otherRules: { [team: string]: RegExp[] } = {};
+	private readonly ownerlessFeatures: string[] = [];
 
 	public constructor(ruleFromConfig: {
 		[key: string]: {
@@ -12,10 +13,9 @@ export class Rules {
 			owner: string;
 		};
 	}) {
-		const ownerlessFeatures = [];
 		for (const [featureName, feature] of Object.entries(ruleFromConfig)) {
 			if (!feature.owner) {
-				ownerlessFeatures.push(featureName);
+				this.ownerlessFeatures.push(featureName);
 				continue;
 			}
 
@@ -50,11 +50,10 @@ export class Rules {
 			}
 		}
 
-		if (ownerlessFeatures.length > 0) {
+		if (this.ownerlessFeatures.length > 0) {
 			log.warn("Invalid configuration.");
-			log.warn(`The following features in the configuration file have no owner:`, ownerlessFeatures.join(", "));
-			log.warn("Please assign an owner to each feature.");
-			// process.exit(1);
+			log.warn(`The following features in the configuration have no owner:`, this.ownerlessFeatures.join(", "));
+			log.warn("Please assign an owner to those features.");
 		}
 
 		// const allRegExp: OptiRegExpMap = {
