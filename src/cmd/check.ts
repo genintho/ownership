@@ -3,9 +3,9 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 // @ts-expect-error
 import type { Arguments, Argv } from "yargs";
-import { minimatch } from "minimatch";
 import { parseConfig } from "../lib/configuration.ts";
 import type { Config } from "../lib/configuration.ts";
+import { Rules } from "../lib/rules.ts";
 import { initialize as initializeBaseline, type Baseline, saveBaseline } from "../lib/baseline.ts";
 import { log } from "../lib/log.ts";
 import { type OError, OErrorFileNoOwner } from "../lib/errors.ts";
@@ -100,7 +100,7 @@ export async function runTest(
 		const queue = new Queue({
 			concurrency: 10,
 			exclude: config.exclude,
-			ownerRules: assembleAllRegExp(config),
+			ownerRules: new Rules(config.features),
 			baseline,
 			onFinish: (errors: OError[], nbFiles, nbDir) => {
 				log.timeEnd("new_thing");
@@ -114,155 +114,6 @@ export async function runTest(
 	});
 }
 
-type RegExpMap = { [team: string]: RegExp };
-
-type OptiRegExpMap = {
-	file: { [team: string]: Set<string> };
-	dir: RegExpMap;
-	other: RegExpMap;
-};
-
-export function assembleAllRegExp(config: Config): OptiRegExpMap {
-	const tmp: {
-		file: { [team: string]: string[] };
-		dir: { [team: string]: string[] };
-		other: { [team: string]: string[] };
-	} = {
-		file: {},
-		dir: {},
-		other: {},
-	};
-
-	const ownerlessFeatures = [];
-	for (const [feature_name, feature] of Object.entries(config.features)) {
-		if (!feature.owner) {
-			ownerlessFeatures.push(feature_name);
-			continue;
-		}
-
-		for (const filePattern of feature.files) {
-			const regex = minimatch.makeRe(filePattern);
-			if (!regex) {
-				log.warn("Invalid glob pattern", filePattern);
-				continue;
-			}
-
-			if (isExactFilePattern(filePattern)) {
-				if (!tmp.file[feature.owner]) {
-					tmp.file[feature.owner] = [];
-				}
-				tmp.file[feature.owner].push(regex.source);
-				continue;
-			}
-
-			// test if this regex match a directory
-			if (isGlobForFolders(filePattern)) {
-				if (!tmp.dir[feature.owner]) {
-					tmp.dir[feature.owner] = [];
-				}
-				tmp.dir[feature.owner].push(regex.source);
-				continue;
-			}
-
-			if (!tmp.other[feature.owner]) {
-				tmp.other[feature.owner] = [];
-			}
-			tmp.other[feature.owner].push(regex.source);
-		}
-	}
-
-	if (ownerlessFeatures.length > 0) {
-		log.warn("Invalid configuration.");
-		log.warn(`The following features in the configuration file have no owner:`, ownerlessFeatures.join(", "));
-		log.warn("Please assign an owner to each feature.");
-		// process.exit(1);
-	}
-
-	const allRegExp: OptiRegExpMap = {
-		file: {},
-		dir: {},
-		other: {},
-	};
-
-	for (const [team, arrReg] of Object.entries(tmp.file)) {
-		allRegExp.file[team] = new Set(arrReg);
-	}
-	for (const [team, arrReg] of Object.entries(tmp.dir)) {
-		const combinedPattern = arrReg.join("|");
-		allRegExp.dir[team] = new RegExp(combinedPattern);
-	}
-	for (const [team, arrReg] of Object.entries(tmp.other)) {
-		const combinedPattern = arrReg.join("|");
-		allRegExp.other[team] = new RegExp(combinedPattern);
-	}
-
-	return allRegExp;
-}
-
-export function findOwner(
-	regexps: OptiRegExpMap,
-	baseline: Baseline,
-	file: string,
-): string | null | typeof MATCH_BASELINE {
-	if (baseline.check(file)) {
-		return MATCH_BASELINE;
-	}
-
-	for (const [team, fileSet] of Object.entries(regexps.file)) {
-		if (fileSet.has(file)) {
-			return team;
-		}
-	}
-
-	for (const [team, regexp] of Object.entries(regexps.other)) {
-		if (regexp.test(file)) {
-			return team;
-		}
-	}
-	return null;
-}
-
-export function findDirOwner(regexps: OptiRegExpMap, dirPath: string): string | null {
-	for (const [team, regexp] of Object.entries(regexps.dir)) {
-		if (regexp.test(dirPath)) {
-			return team;
-		}
-	}
-	return null;
-}
-
-export function isExactFilePattern(pattern: string): boolean {
-	const hasWildcards = /[*?[\]{}]/.test(pattern);
-
-	if (hasWildcards) {
-		return false;
-	}
-	return true;
-}
-
-export function isGlobForFolders(globPattern: string): boolean {
-	// Remove trailing wildcards and slashes
-	let cleanPattern = globPattern.replace(/\/\*+$/, "").replace(/\/$/, "");
-
-	// Split by path separator
-	const parts = cleanPattern.split("/");
-
-	// Check file, aka extensions
-	// @todo, handle file starting with dot, like .git
-	if (parts[parts.length - 1].includes(".")) {
-		return false;
-	}
-
-	for (const part of parts) {
-		//
-		const hasSpecialChar = /[?[\]{}]/.test(part);
-		if (hasSpecialChar) {
-			return false;
-		}
-	}
-	return true;
-}
-
 class Queue {
 	private next: Set<string> = new Set();
 	private running: Set<string> = new Set();
@@ -272,7 +123,7 @@ class Queue {
 	private nbFileTested = 0;
 	private nbDir = 0;
 	private results: OError[] = [];
-	private ownerRules: OptiRegExpMap;
+	private ownerRules: Rules;
 	private baseline: Baseline;
 
 	constructor({
@@ -285,7 +136,7 @@ class Queue {
 		concurrency: number;
 		exclude: RegExp[];
 		onFinish: (results: OError[], nbFileTested: number, nbDir: number) => void;
-		ownerRules: OptiRegExpMap;
+		ownerRules: Rules;
 		baseline: Baseline;
 	}) {
 		this.concurrency = concurrency;
@@ -365,7 +216,7 @@ class Queue {
 		this.nbDir++;
 		log.debug("Dir tested:", pathToScan);
 
-		const owner = findDirOwner(this.ownerRules, pathToScan);
+		const owner = this.ownerRules.testDir(pathToScan);
 		if (owner !== null) {
 			log.debug(chalk.green("[✓]"), "Dir:", pathToScan, "owner:", chalk.blue(owner));
 			this.running.delete(pathToScan);
@@ -386,4 +237,17 @@ class Queue {
 			this.ping();
 		}
 	}
+}
+
+export function findOwner(regexps: Rules, baseline: Baseline, file: string): string | null | typeof MATCH_BASELINE {
+	if (baseline.check(file)) {
+		return MATCH_BASELINE;
+	}
+
+	const owner = regexps.testPath(file);
+	if (owner) {
+		return owner;
+	}
+
+	return null;
 }
