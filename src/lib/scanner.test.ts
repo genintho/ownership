@@ -1,5 +1,5 @@
 import { expect, describe, it, beforeAll, vi } from "vitest";
-import { scan } from "./scanner.ts";
+import { scan, isCommonIgnoredFile } from "./scanner.ts";
 import { Config } from "../lib/configuration.ts";
 import * as fs from "node:fs";
 import { Baseline } from "../lib/baseline.ts";
@@ -63,6 +63,18 @@ describe("scanner", () => {
 				  },
 				]
 			`);
+		});
+	});
+
+	describe("isCommonIgnoredFile", () => {
+		it.each([
+			[".env", true],
+			[".DS_Store", true],
+			["a/path/to/.DS_Store", true],
+			["bob.png", false],
+			["dir/sss/bob.png", false],
+		])("(%s) -> %d", (a, expected) => {
+			expect(isCommonIgnoredFile(a)).toBe(expected);
 		});
 	});
 });

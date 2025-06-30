@@ -17,6 +17,8 @@ export type ScanResult = {
 	baseline: Baseline;
 };
 
+const COMMON_IGNORED_FILES = new Set<string>([".env", ".DS_Store"]);
+
 export async function scan(config: Config): Promise<ScanResult> {
 	return new Promise((resolve) => {
 		log.time("scan");
@@ -82,10 +84,14 @@ class Queue {
 		}
 
 		this.next.add(pathToScan);
-		this.ping();
+		this.ping(null);
 	}
 
-	ping() {
+	ping(runningPathToDelete: string | null = null) {
+		if (runningPathToDelete !== null) {
+			this.running.delete(runningPathToDelete);
+		}
+
 		if (this.running.size >= this.concurrency) {
 			return;
 		}
@@ -113,6 +119,11 @@ class Queue {
 	}
 
 	processFile(pathToScan: string) {
+		if (isCommonIgnoredFile(pathToScan)) {
+			this.ping(pathToScan);
+			return;
+		}
+
 		this.nbFileTested++;
 
 		const owner = findOwner(this.ownerRules, this.baseline, pathToScan);
@@ -127,14 +138,7 @@ class Queue {
 			log.debug(chalk.green("[✓]"), "File:", pathToScan, "owner:", chalk.blue(owner));
 		}
 
-		// @TODO
-		// If config ask to stop as soon as an error is found
-		// if (errors.length && config.stopFirstError) {
-		// 	break;
-		// }
-
-		this.running.delete(pathToScan);
-		this.ping();
+		this.ping(pathToScan);
 	}
 
 	async processDir(pathToScan: string) {
@@ -144,8 +148,7 @@ class Queue {
 		const owner = this.ownerRules.testDir(pathToScan);
 		if (owner !== null) {
 			log.debug(chalk.green("[✓]"), "Dir:", pathToScan, "owner:", chalk.blue(owner));
-			this.running.delete(pathToScan);
-			this.ping();
+			this.ping(pathToScan);
 			return;
 		}
 		try {
@@ -158,10 +161,14 @@ class Queue {
 		} catch (err) {
 			log.error("Error reading directory:", pathToScan, err);
 		} finally {
-			this.running.delete(pathToScan);
-			this.ping();
+			this.ping(pathToScan);
 		}
 	}
+}
+
+export function isCommonIgnoredFile(file: string): boolean {
+	const basename = path.basename(file);
+	return COMMON_IGNORED_FILES.has(basename);
 }
 
 export function findOwner(regexps: Rules, baseline: Baseline, file: string): string | null | typeof MATCH_BASELINE {
