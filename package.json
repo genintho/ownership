@@ -6,7 +6,7 @@
 	],
 	"type": "module",
 	"scripts": {
-		"build": "tsup src/main.ts --format esm --minify",
+		"build": "tsup src/main.ts --format esm",
 		"deploy": "yarn ci && yarn build && chmod +x dist/main.js && npm publish --access public",
 		"test": "vitest",
 		"test:coverage": "vitest run --coverage",
