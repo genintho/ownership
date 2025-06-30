@@ -5,7 +5,7 @@ export class Rules {
 	private readonly dirRules: { [team: string]: RegExp[] } = {};
 	private readonly fileRules: { [team: string]: Set<string> } = {};
 	private readonly otherRules: { [team: string]: RegExp[] } = {};
-	private readonly ownerlessFeatures: string[] = [];
+	public readonly ownerlessFeatures: string[] = [];
 
 	public constructor(ruleFromConfig: {
 		[key: string]: {

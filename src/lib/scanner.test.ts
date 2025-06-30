@@ -1,4 +1,4 @@
-import { expect, describe, it, beforeAll } from "vitest";
+import { expect, describe, it, beforeAll, vi } from "vitest";
 import { scan } from "./scanner.ts";
 import { Config } from "../lib/configuration.ts";
 import * as fs from "node:fs";
@@ -15,7 +15,7 @@ describe("scanner", () => {
 			}
 		});
 
-		it("feature with files returns map with file regexps", async () => {
+		it("files outside the path are ignored", async () => {
 			const config = new Config(
 				{ paths: ["./src"], config: "" },
 				{
@@ -27,24 +27,23 @@ describe("scanner", () => {
 					},
 				},
 			);
-			const result = await scan(config, new Baseline({}));
-			expect(result).toMatchInlineSnapshot(`
-			{
-			  "errors": [
-			    OErrorFileNoOwner {
-			      "filePath": "src/main.cpp",
-			    },
-			    OErrorFileNoOwner {
-			      "filePath": "src/utils/str.cpp",
-			    },
-			  ],
-			  "nbDir": 2,
-			  "nbFileTested": 3,
-			}
-		`);
+			const result = await scan(config);
+			expect(result.errors).toMatchInlineSnapshot(`
+				[
+				  OErrorFileNoOwner {
+				    "filePath": "src/main.cpp",
+				  },
+				  OErrorFileNoOwner {
+				    "filePath": "src/utils/str.cpp",
+				  },
+				]
+			`);
 		});
 
 		it("file found in the baseline are ignored", async () => {
+			const baselineModule = await import("../lib/baseline.ts");
+			vi.spyOn(baselineModule, "initialize").mockReturnValue(new Baseline({ files: ["src/main.cpp"] }));
+
 			const config = new Config(
 				{ paths: ["src"], config: "" },
 				{
@@ -56,18 +55,14 @@ describe("scanner", () => {
 					},
 				},
 			);
-			const result = await scan(config, new Baseline({ files: ["src/main.cpp"] }));
-			expect(result).toMatchInlineSnapshot(`
-			{
-			  "errors": [
-			    OErrorFileNoOwner {
-			      "filePath": "src/utils/str.cpp",
-			    },
-			  ],
-			  "nbDir": 2,
-			  "nbFileTested": 3,
-			}
-		`);
+			const result = await scan(config);
+			expect(result.errors).toMatchInlineSnapshot(`
+				[
+				  OErrorFileNoOwner {
+				    "filePath": "src/utils/str.cpp",
+				  },
+				]
+			`);
 		});
 	});
 });

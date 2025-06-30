@@ -6,23 +6,30 @@ import { Rules } from "./rules.ts";
 import type { Baseline } from "./baseline.ts";
 import { log } from "./log.ts";
 import { type OError, OErrorFileNoOwner } from "./errors.ts";
-
+import { initialize as initializeBaseline } from "./baseline.ts";
 export const MATCH_BASELINE = Symbol("MATCH_BASELINE");
 
-export async function scan(
-	config: Config,
-	baseline: Baseline,
-): Promise<{ errors: OError[]; nbFileTested: number; nbDir: number }> {
+export type ScanResult = {
+	errors: OError[];
+	nbFileTested: number;
+	nbDir: number;
+	rules: Rules;
+	baseline: Baseline;
+};
+
+export async function scan(config: Config): Promise<ScanResult> {
 	return new Promise((resolve) => {
-		log.time("new_thing");
+		log.time("scan");
+		const baseline = initializeBaseline(config);
+		const rules = new Rules(config.features);
 		const queue = new Queue({
 			concurrency: 10,
 			exclude: config.exclude,
-			ownerRules: new Rules(config.features),
+			ownerRules: rules,
 			baseline,
 			onFinish: (errors: OError[], nbFiles, nbDir) => {
-				log.timeEnd("new_thing");
-				resolve({ errors, nbFileTested: nbFiles, nbDir });
+				log.timeEnd("scan");
+				resolve({ errors, nbFileTested: nbFiles, nbDir, rules, baseline });
 			},
 		});
 		for (const pathInfo of config.paths) {

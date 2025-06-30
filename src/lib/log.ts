@@ -17,6 +17,9 @@ export const log = {
 			);
 		}
 	},
+	line: (char: string = "-") => {
+		console.log(char.repeat(70));
+	},
 	info: (...message: any[]) => {
 		if (mode !== "quiet") {
 			console.log(...message);

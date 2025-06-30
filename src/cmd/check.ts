@@ -2,7 +2,7 @@ import chalk from "chalk";
 import type { Arguments, Argv } from "yargs";
 import { parseConfig } from "../lib/configuration.ts";
 import type { Config } from "../lib/configuration.ts";
-import { initialize as initializeBaseline, type Baseline, saveBaseline } from "../lib/baseline.ts";
+import { type Baseline, saveBaseline } from "../lib/baseline.ts";
 import { log } from "../lib/log.ts";
 import { configOptions, defaultHandler } from "../lib/cmdHelpers.ts";
 import { scan } from "../lib/scanner.ts";
@@ -28,9 +28,8 @@ export const builder = (yargs: Argv) => {
 
 export const handler = defaultHandler(async (argv: Arguments<CheckOptions>) => {
 	const config = parseConfig(argv);
-	const baseline = initializeBaseline(config);
 
-	const { errors, nbDir, nbFileTested } = await scan(config, baseline);
+	const { errors, nbDir, nbFileTested, baseline } = await scan(config);
 
 	if (argv.updateBaseline) {
 		updateBaseline(config, baseline);
@@ -46,15 +45,6 @@ export const handler = defaultHandler(async (argv: Arguments<CheckOptions>) => {
 	} else {
 		log.info(chalk.green("[✓]"), "No errors found", nbDir, "directories", nbFileTested, "files tested");
 	}
-
-	// const unneededFileRecord = baseline.unneededFileRecord;
-	// if (unneededFileRecord.length > 0) {
-	// 	log.info(chalk.blue("\nBaseline:"), " contains outdated file references:");
-	// 	for (const file of unneededFileRecord) {
-	// 		log.info("  ", file);
-	// 	}
-	// 	log.info(chalk.grey("You can remove them by hand, or run `check --update-baseline` to update the baseline file"));
-	// }
 
 	return errors.length > 0 ? 1 : 0;
 });
