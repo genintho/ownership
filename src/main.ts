@@ -11,4 +11,10 @@ yargs(hideBin(process.argv))
 	.command(checkCmd)
 	.command(auditCmd)
 	.demandCommand(1, "You need at least one command before moving on")
+	.fail((msg, err, _yargs) => {
+		if (err) throw err; // preserve stack
+		console.error("Error:", msg);
+		console.error("Use --help to see available commands");
+		process.exit(1);
+	})
 	.help().argv;
