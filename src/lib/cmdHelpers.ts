@@ -1,4 +1,3 @@
-// @ts-expect-error
 import type { Arguments, Argv } from "yargs";
 import chalk from "chalk";
 import { OError } from "./errors.ts";
