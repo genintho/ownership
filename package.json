@@ -44,7 +44,7 @@
 	"description": "Define ownership of files and dependencies in a project.",
 	"author": "Thomas Genin",
 	"homepage": "https://github.com/genintho/ownership",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/genintho/ownership.git"
