@@ -111,11 +111,19 @@ class Queue {
 		this.running.add(pathToScan);
 		this.next.delete(pathToScan);
 
-		if (fs.statSync(pathToScan).isDirectory()) {
-			this.processDir(pathToScan);
-		} else {
-			this.processFile(pathToScan);
-		}
+		fs.stat(pathToScan, (err, stats) => {
+			if (err) {
+				log.error("Error accessing path:", pathToScan, err);
+				this.ping(pathToScan);
+				return;
+			}
+
+			if (stats.isDirectory()) {
+				this.processDir(pathToScan);
+			} else {
+				this.processFile(pathToScan);
+			}
+		});
 	}
 
 	processFile(pathToScan: string) {
