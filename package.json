@@ -1,9 +1,11 @@
 {
 	"name": "ownership",
-	"bin": "dist/main.js",
+	"bin": "dist/cli.js",
 	"files": [
-		"dist/**/*.js"
+		"dist/**/*.js",
+		"src/**/*.ts"
 	],
+	"main": "src/lib.ts",
 	"type": "module",
 	"scripts": {
 		"build": "tsup src/main.ts --format esm",
