@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import type { Arguments, Argv } from "yargs";
-import { parseConfig } from "../lib/configuration.ts";
+import { config } from "../lib/configuration.ts";
 import { log } from "../lib/log.ts";
 import { configOptions, defaultHandler } from "../lib/cmdHelpers.ts";
 import { scan, type ScanResult } from "../lib/scanner.ts";
@@ -22,9 +22,14 @@ export const builder = (yargs: Argv) => {
 };
 
 export const handler = defaultHandler(async (argv: Arguments<CheckOptions>) => {
-	const config = parseConfig(argv);
+	const conf = config({
+		pathToConfig: argv.config,
+		pathsToScan: argv.paths,
+		pathToBaseline: argv.pathBaseline,
+		logLevel: argv.debug ? "debug" : argv.verbose ? "info" : "warn",
+	});
 
-	const result = await scan(config);
+	const result = await scan(conf);
 
 	let summaries: string[] = [];
 	let shouldExit0 = true;

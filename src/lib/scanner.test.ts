@@ -1,6 +1,6 @@
 import { expect, describe, it, beforeAll, vi } from "vitest";
 import { scan, isCommonIgnoredFile } from "./scanner.ts";
-import { Config } from "../lib/configuration.ts";
+import { combineConfig } from "../lib/configuration.ts";
 import * as fs from "node:fs";
 import { Baseline } from "../lib/baseline.ts";
 
@@ -16,17 +16,15 @@ describe("scanner", () => {
 		});
 
 		it("files outside the path are ignored", async () => {
-			const config = new Config(
-				{ paths: ["./src"], config: "" },
-				{
-					features: {
-						billing: {
-							files: ["**/tax.cpp"],
-							owner: "donut",
-						},
+			const config = combineConfig({
+				pathsToScan: ["./src"],
+				features: {
+					billing: {
+						files: ["**/tax.cpp"],
+						owner: "donut",
 					},
 				},
-			);
+			});
 			const result = await scan(config);
 			expect(result.errors).toMatchInlineSnapshot(`
 				[
@@ -44,17 +42,15 @@ describe("scanner", () => {
 			const baselineModule = await import("../lib/baseline.ts");
 			vi.spyOn(baselineModule, "initialize").mockReturnValue(new Baseline({ files: ["src/main.cpp"] }));
 
-			const config = new Config(
-				{ paths: ["src"], config: "" },
-				{
-					features: {
-						billing: {
-							files: ["**/tax.cpp"],
-							owner: "donut",
-						},
+			const config = combineConfig({
+				pathsToScan: ["src"],
+				features: {
+					billing: {
+						files: ["**/tax.cpp"],
+						owner: "donut",
 					},
 				},
-			);
+			});
 			const result = await scan(config);
 			expect(result.errors).toMatchInlineSnapshot(`
 				[

@@ -1,9 +1,9 @@
-import type { Config } from "./configuration.ts";
+import type { Configuration } from "./configuration.ts";
 import { dump as YamlDump, load as YamlLoad } from "js-yaml";
 import * as fs from "node:fs";
 
-export function initialize(config: Config) {
-	const todoFile = config.pathBaselineAbs;
+export function initialize(config: Configuration) {
+	const todoFile = config.pathToBaseline;
 	if (!fs.existsSync(todoFile)) {
 		return new Baseline({});
 	}
@@ -13,8 +13,8 @@ export function initialize(config: Config) {
 	return new Baseline(todos);
 }
 
-export function saveBaseline(config: Config, baseline: Baseline) {
-	const todoFile = config.pathBaselineAbs;
+export function saveBaseline(config: Configuration, baseline: Baseline) {
+	const todoFile = config.pathToBaseline;
 	fs.writeFileSync(todoFile, YamlDump(baseline.toJSON(), { sortKeys: true, lineWidth: -1 }));
 }
 

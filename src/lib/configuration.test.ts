@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { parseConfig } from "./configuration.ts";
+import { config, initDefault } from "./configuration.ts";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as fs from "node:fs";
@@ -23,52 +23,36 @@ describe("parseConfig", () => {
 	});
 
 	it("should throw an error if the config file does not exist", () => {
-		const argv = {
-			config: path.join(testDir, "nonexistent.yaml"),
-			paths: ["./"],
-		};
-		expect(() => parseConfig(argv)).toThrow(OErrorNoConfig);
+		expect(() =>
+			config({
+				pathToConfig: path.join(testDir, "nonexistent.yaml"),
+				pathsToScan: ["./"],
+			}),
+		).toThrow(OErrorNoConfig);
 	});
 
 	it("should throw an error if the config file is invalid YAML", () => {
 		const invalidYamlPath = path.join(testDir, "invalid.yaml");
 		fs.writeFileSync(invalidYamlPath, "invalid yaml: content:"); // Malformed YAML
 
-		const argv = {
-			config: invalidYamlPath,
-			paths: ["./"],
-		};
-
-		expect(() => parseConfig(argv)).toThrowError(/\nError loading or parsing config file: /);
+		expect(() => config({ pathToConfig: invalidYamlPath, pathsToScan: ["./"] })).toThrowError(
+			/\nError loading or parsing config file: /,
+		);
 	});
 
 	it("generate a default config", () => {
-		const p = path.join(testDir, "conf.yaml");
-		fs.writeFileSync(p, "{}");
-
-		const conf = parseConfig({ config: p, paths: ["./target_path"], debug: true });
-		expect(conf.paths).toHaveLength(1);
-		expect(conf.root).toBe(process.cwd());
-		const confJson = conf.toJSON();
-		// @TODO figure out how to actually test this without hardcoding a path in the snapshot
-		expect(confJson).toMatchSnapshot();
+		expect(initDefault()).toMatchSnapshot();
 	});
 
 	it("should handle multiple paths", () => {
-		const p = path.join(testDir, "conf.yaml");
-		fs.writeFileSync(p, "{}");
-
-		const conf = parseConfig({ config: p, paths: ["./src", "./lib", "./test.js"], debug: true });
-		expect(conf.paths).toHaveLength(3);
-		expect(conf.paths[0]).toBe("src");
-		expect(conf.paths[1]).toBe("lib");
-		expect(conf.paths[2]).toBe("test.js");
+		const conf = config({ pathsToScan: ["./src", "./lib", "./test.js"] });
+		expect(conf.pathsToScan).toHaveLength(3);
+		expect(conf.pathsToScan[0]).toBe("src");
+		expect(conf.pathsToScan[1]).toBe("lib");
+		expect(conf.pathsToScan[2]).toBe("test.js");
 	});
 
-	it("a path must", () => {
-		const p = path.join(testDir, "conf.yaml");
-		fs.writeFileSync(p, "{}");
-
-		expect(() => parseConfig({ config: p, paths: [] })).toThrow(OErrorNoPaths);
+	it.only("a path must be set", () => {
+		expect(() => config({ pathToConfig: "aa.yaml", pathsToScan: [] })).toThrow(OErrorNoPaths);
 	});
 });

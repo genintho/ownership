@@ -1,56 +1,137 @@
 import * as fs from "node:fs";
 import { load as YamlLoad } from "js-yaml";
-import { fileURLToPath } from "node:url";
-import * as path from "node:path";
 import { log } from "./log.ts";
-import { OErrorDebugAndQuiet, OErrorNoConfig, OErrorNoPaths } from "./errors.ts";
+import type { LogLevel } from "./log.ts";
+import { OErrorNoPaths } from "./errors.ts";
 import { minimatch } from "minimatch";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-type argvType = {
-	config: string;
-	paths: string[];
-	pathBaseline?: string;
-	debug?: boolean;
-	quiet?: boolean;
+/**
+ * Configuration object used by the tool.
+ */
+export type Configuration = {
+	logLevel: LogLevel;
+	pathToConfig: string;
+	pathsToScan: string | string[];
+	pathToBaseline: string;
+	pathToExclude: RegExp[];
+	teams: Teams;
+	features: Features;
+	version: number;
 };
 
-export function parseConfig(argv: argvType): Config {
-	if (argv.debug === true) {
-		log.setLevel("debug");
+export type Features = {
+	[key: string]: Feature;
+};
+
+export type Feature = {
+	description?: string;
+	files: string[];
+	owner: string;
+};
+
+/**
+ * Configuration option that can be stored in a file
+ */
+type StoredConfig = Partial<{
+	version: number;
+	logLevel: LogLevel;
+	pathToBaseline: string;
+	/**
+	 * List of global patterns to exclude from the scan.
+	 */
+	exclude: string[];
+	teams: Teams;
+	features: Features;
+}>;
+
+export type ConfigurationOptions = Partial<Configuration> & {
+	pathToConfigFile?: string;
+};
+
+export type Team = { name: string };
+export type Teams = Team[];
+
+export function combineConfig(input: StoredConfig & ConfigurationOptions): Configuration {
+	return {
+		version: input.version || 1,
+		logLevel: input.logLevel || "info",
+		pathsToScan: input.pathsToScan || ["."],
+		pathToBaseline: input.pathToBaseline || ".ownership-todo.yml",
+		pathToExclude: excludeToRegex(input.exclude || []),
+		teams: input.teams || [],
+		features: input.features || {},
+		pathToConfig: input.pathToConfig || "ownership.yaml",
+	};
+}
+
+export function config(options: ConfigurationOptions): Readonly<Configuration> {
+	log.setLevel(options.logLevel);
+
+	const fromFile = readConfigFile(options.pathToConfigFile);
+	const c = combineConfig({ ...fromFile, ...options });
+
+	log.setLevel(c.logLevel);
+
+	if (c.pathsToScan.length === 0) {
+		throw new OErrorNoPaths();
 	}
 
-	log.debug("Configuration from argv", JSON.stringify(argv));
+	return c;
+}
 
-	// @ts-expect-error
-	let configFileContent: Config = {};
-
-	const configPath = path.resolve(argv.config || path.resolve(__dirname, "ownership.yaml"));
-	log.debug("Configuration file path", configPath);
-
-	if (!fs.existsSync(configPath)) {
-		throw new OErrorNoConfig();
+function readConfigFile(pathToConfigFile?: string): StoredConfig {
+	if (!pathToConfigFile) {
+		return {};
 	}
-
+	if (!fs.existsSync(pathToConfigFile)) {
+		throw new Error("Configuration file not found: " + pathToConfigFile);
+	}
+	let configFileContent = null;
 	try {
-		const configFile = fs.readFileSync(configPath, "utf8");
-		log.debug("Configuration file read", configFile.length, "bytes");
-		configFileContent = YamlLoad(configFile) as any;
+		configFileContent = fs.readFileSync(pathToConfigFile, "utf8");
 	} catch (e: any) {
-		throw new Error("\nError loading or parsing config file: " + e.message);
+		throw new Error("Error reading configuration file: " + e.message);
 	}
 
-	const config = new Config(argv, configFileContent);
+	if (configFileContent === null || configFileContent === undefined || configFileContent.trim() === "") {
+		throw new Error("Configuration file is empty: " + pathToConfigFile);
+	}
 
-	// @TODO "logLevel" option?
-	if (config.quiet) log.setLevel("quiet");
-	if (config.debug) log.setLevel("debug");
+	let parsedConfig;
+	try {
+		parsedConfig = YamlLoad(configFileContent) as any;
+	} catch (e: any) {
+		throw new Error("Error parsing configuration file: " + e.message);
+	}
 
-	log.debug("Computed Config", JSON.stringify(config.toJSON(), null, 2));
+	if (typeof parsedConfig !== "object" || parsedConfig === null) {
+		throw new Error("Configuration file is not a valid object: " + pathToConfigFile);
+	}
 
-	return config;
+	const validatedConfig: StoredConfig = {};
+	for (const key of Object.keys(parsedConfig)) {
+		switch (key) {
+			case "logLevel":
+				validatedConfig[key] = parsedConfig[key];
+				break;
+			default:
+				log.warn(`Unknown configuration key: ${key}`);
+				break;
+		}
+	}
+
+	return validatedConfig;
+}
+
+export function initDefault(): StoredConfig {
+	return {
+		version: 1,
+		logLevel: "info",
+		pathToBaseline: ".ownership-todo.yml",
+		exclude: [],
+		teams: [],
+		features: {},
+	};
 }
 
 function excludeToRegex(excludes: string[] | null = []): RegExp[] {
@@ -67,77 +148,4 @@ function excludeToRegex(excludes: string[] | null = []): RegExp[] {
 		}
 		return minimatch.makeRe(exclude);
 	});
-}
-
-export class Config {
-	public readonly debug;
-	public readonly quiet;
-	/**
-	 * The root of the project, aka the folder in which the command is being called
-	 * Used to compute the relative path of the files
-	 */
-	public readonly root: string;
-	public readonly paths: ReadonlyArray<string>;
-	public readonly pathBaseline: string;
-	public readonly pathBaselineAbs: string;
-	public readonly stopFirstError: boolean;
-
-	public readonly exclude: RegExp[];
-	public readonly teams: { name: string }[];
-	public readonly features: {
-		[key: string]: {
-			description: string;
-			files: string[];
-			owner: string;
-		};
-	};
-
-	constructor(argv: argvType, fileData: any) {
-		this.debug = argv.debug || fileData.configuration?.debug || false;
-		this.quiet = argv.quiet || fileData.configuration?.quiet || false;
-		this.root = process.cwd();
-
-		log.debug("Root", this.root);
-
-		if (this.debug && this.quiet) {
-			throw new OErrorDebugAndQuiet();
-		}
-
-		// Passing paths to the CLI command takes priority over the ones in the config file
-		// If no path is provided, default to the current directory
-		this.paths = (Array.isArray(argv.paths) && argv.paths.length && argv.paths) || fileData.configuration?.paths || [];
-
-		if (this.paths.length === 0) {
-			throw new OErrorNoPaths();
-		}
-		// Remove the leading ./ from the paths if found
-		this.paths = this.paths.map((path) => {
-			if (path === "./") {
-				return this.root;
-			}
-			return path.replace(/^\.\//, "");
-		});
-
-		this.pathBaseline = argv.pathBaseline || fileData.configuration?.basepathBaselineline || ".owner-todo.yml";
-		this.pathBaselineAbs = path.resolve(this.pathBaseline);
-		this.stopFirstError = fileData.configuration?.stopFirstError || false;
-		this.exclude = excludeToRegex(fileData.exclude);
-		this.teams = fileData.teams || {};
-		this.features = fileData.features || {};
-	}
-
-	toJSON() {
-		return {
-			configuration: {
-				paths: this.paths,
-				pathBaseline: this.pathBaseline,
-				stopFirstError: this.stopFirstError,
-				debug: this.debug,
-				quiet: this.quiet,
-			},
-			exclude: this.exclude,
-			teams: this.teams,
-			features: this.features,
-		};
-	}
 }

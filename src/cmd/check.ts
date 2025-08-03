@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import type { Arguments, Argv } from "yargs";
-import { parseConfig } from "../lib/configuration.ts";
-import type { Config } from "../lib/configuration.ts";
+import { config } from "../lib/configuration.ts";
+import type { Configuration } from "../lib/configuration.ts";
 import { type Baseline, saveBaseline } from "../lib/baseline.ts";
 import { log } from "../lib/log.ts";
 import { configOptions, defaultHandler } from "../lib/cmdHelpers.ts";
@@ -27,12 +27,17 @@ export const builder = (yargs: Argv) => {
 };
 
 export const handler = defaultHandler(async (argv: Arguments<CheckOptions>) => {
-	const config = parseConfig(argv);
+	const conf = config({
+		logLevel: argv.debug ? "debug" : argv.verbose ? "info" : "warn",
+		pathsToScan: argv.paths,
+		pathToConfigFile: argv.config,
+		pathToBaseline: argv.pathBaseline,
+	});
 
-	const { errors, nbDir, nbFileTested, baseline } = await scan(config);
+	const { errors, nbDir, nbFileTested, baseline } = await scan(conf);
 
 	if (argv.updateBaseline) {
-		updateBaseline(config, baseline);
+		updateBaseline(conf, baseline);
 		return 0;
 	}
 
@@ -49,7 +54,7 @@ export const handler = defaultHandler(async (argv: Arguments<CheckOptions>) => {
 	return errors.length > 0 ? 1 : 0;
 });
 
-function updateBaseline(config: Config, baseline: Baseline) {
+function updateBaseline(config: Configuration, baseline: Baseline) {
 	const unneededFileRecord = baseline.unneededFileRecord;
 	if (baseline.filesToAdd.size > 0) {
 		log.info(chalk.blue("\nBaseline will be updated to include the following files:"));

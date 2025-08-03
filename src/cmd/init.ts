@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 
 import type { Arguments, Argv } from "yargs";
 import chalk from "chalk";
-import { parseConfig } from "../lib/configuration.ts";
+import { initDefault } from "../lib/configuration.ts";
 
 // Define the type for the arguments of the generate command if it has specific options
 // export interface GenerateOptions {
@@ -51,11 +51,6 @@ export const handler = (argv: Arguments /* <GenerateOptions> */) => {
 	}
 
 	// @ts-expect-error
-	fs.writeFileSync(argv.config, "{}");
-
-	// @ts-expect-error
-	const config = parseConfig(argv);
-	// @ts-expect-error
-	fs.writeFileSync(argv.config, YamlDump(config));
+	fs.writeFileSync(argv.config, YamlDump(initDefault(), { sortKeys: true }));
 	log.info(chalk.green("Done"));
 };

@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { Config } from "./configuration.ts";
+import type { Configuration } from "./configuration.ts";
 import { Rules } from "./rules.ts";
 import type { Baseline } from "./baseline.ts";
 import { log } from "./log.ts";
@@ -19,14 +19,14 @@ export type ScanResult = {
 
 const COMMON_IGNORED_FILES = new Set<string>([".env", ".DS_Store"]);
 
-export async function scan(config: Config): Promise<ScanResult> {
+export async function scan(config: Configuration): Promise<ScanResult> {
 	return new Promise((resolve) => {
 		log.time("scan");
 		const baseline = initializeBaseline(config);
 		const rules = new Rules(config.features);
 		const queue = new Queue({
 			concurrency: 10,
-			exclude: config.exclude,
+			exclude: config.pathToExclude,
 			ownerRules: rules,
 			baseline,
 			onFinish: (errors: OError[], nbFiles, nbDir) => {
@@ -34,7 +34,7 @@ export async function scan(config: Config): Promise<ScanResult> {
 				resolve({ errors, nbFileTested: nbFiles, nbDir, rules, baseline });
 			},
 		});
-		for (const pathInfo of config.paths) {
+		for (const pathInfo of config.pathsToScan) {
 			log.debug("Processing provided path:", pathInfo);
 			queue.add(pathInfo);
 		}
