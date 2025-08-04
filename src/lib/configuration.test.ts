@@ -53,7 +53,7 @@ describe("parseConfig", () => {
 	});
 
 	it.only("a path must be set", () => {
-		fs.writeFileSync( "aa.yaml", "version: 1.0.0\n");
+		fs.writeFileSync("aa.yaml", "version: 1.0.0\n");
 		expect(() => config({ pathToConfig: "aa.yaml", pathsToScan: [] })).toThrow(OErrorNoPaths);
 	});
 });

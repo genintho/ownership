@@ -5,7 +5,7 @@
 		"dist/**/*.js",
 		"src/**/*.ts"
 	],
-	"main": "src/lib.ts",
+	"main": "src/library.ts",
 	"type": "module",
 	"scripts": {
 		"build": "tsup src/main.ts --format esm",

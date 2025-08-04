@@ -179,7 +179,8 @@ export function isCommonIgnoredFile(file: string): boolean {
 	return COMMON_IGNORED_FILES.has(basename);
 }
 
-export function findOwner(regexps: Rules, baseline: Baseline, file: string): string | null | typeof MATCH_BASELINE {
+export type OwnerResult = string | null | typeof MATCH_BASELINE;
+export function findOwner(regexps: Rules, baseline: Baseline, file: string): OwnerResult {
 	if (baseline.check(file)) {
 		return MATCH_BASELINE;
 	}
