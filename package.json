@@ -1,12 +1,12 @@
 {
 	"name": "ownership",
 	"bin": "dist/cli.js",
+	"main": "dist/library.js",
 	"files": [
 		"dist/**/*.js",
 		"src/**/*.ts",
 		"!src/**/*.test.ts"
 	],
-	"main": "src/library.ts",
 	"type": "module",
 	"scripts": {
 		"build": "tsup src/cli.ts src/library.ts --format esm",
@@ -47,7 +47,7 @@
 	"description": "Define ownership of files and dependencies in a project.",
 	"author": "Thomas Genin",
 	"homepage": "https://github.com/genintho/ownership",
-	"version": "0.4.1",
+	"version": "0.4.2",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/genintho/ownership.git"
