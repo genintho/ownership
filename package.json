@@ -3,13 +3,14 @@
 	"bin": "dist/cli.js",
 	"files": [
 		"dist/**/*.js",
-		"src/**/*.ts"
+		"src/**/*.ts",
+		"!src/**/*.test.ts"
 	],
 	"main": "src/library.ts",
 	"type": "module",
 	"scripts": {
-		"build": "tsup src/main.ts --format esm",
-		"deploy": "yarn ci && yarn build && chmod +x dist/main.js && npm publish --access public",
+		"build": "tsup src/cli.ts --format esm",
+		"deploy": "yarn ci && yarn build && chmod +x dist/cli.js && npm publish --access public",
 		"test": "vitest",
 		"test:coverage": "vitest run --coverage",
 		"test:ui": "vitest --coverage --ui",
@@ -46,7 +47,7 @@
 	"description": "Define ownership of files and dependencies in a project.",
 	"author": "Thomas Genin",
 	"homepage": "https://github.com/genintho/ownership",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/genintho/ownership.git"
