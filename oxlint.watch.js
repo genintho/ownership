@@ -1,4 +1,4 @@
-import { readdirSync, watch } from "fs";
+import { readdirSync, watch } from "node:fs";
 import { join } from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";

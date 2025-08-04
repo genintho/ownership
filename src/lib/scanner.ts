@@ -44,14 +44,14 @@ export async function scan(config: Configuration): Promise<ScanResult> {
 class Queue {
 	private next: Set<string> = new Set();
 	private running: Set<string> = new Set();
-	private concurrency: number = 2;
-	private onFinish: (results: OError[], nbFileTested: number, nbDir: number) => void;
+	private readonly concurrency: number = 2;
+	private readonly onFinish: (results: OError[], nbFileTested: number, nbDir: number) => void;
 	private exclude: RegExp[] = [];
 	private nbFileTested = 0;
 	private nbDir = 0;
 	private results: OError[] = [];
-	private ownerRules: Rules;
-	private baseline: Baseline;
+	private readonly ownerRules: Rules;
+	private readonly baseline: Baseline;
 
 	constructor({
 		concurrency = 4,

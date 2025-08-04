@@ -44,8 +44,15 @@ type StoredConfig = Partial<{
 	features: Features;
 }>;
 
-export type ConfigurationOptions = Partial<Configuration> & {
-	pathToConfigFile?: string;
+export type ConfigurationOptions = {
+	pathsToScan: string | string[];
+	// optional
+	version?: number;
+	pathToConfig?: string;
+	pathToBaseline?: string;
+	logLevel?: LogLevel;
+	// pathToConfigFile?: string;
+	exclude?: string[];
 };
 
 export type Team = { name: string };
@@ -67,7 +74,7 @@ export function combineConfig(input: StoredConfig & ConfigurationOptions): Confi
 export function config(options: ConfigurationOptions): Readonly<Configuration> {
 	log.setLevel(options.logLevel);
 
-	const fromFile = readConfigFile(options.pathToConfigFile);
+	const fromFile = readConfigFile(options.pathToConfig);
 	const c = combineConfig({ ...fromFile, ...options });
 
 	log.setLevel(c.logLevel);

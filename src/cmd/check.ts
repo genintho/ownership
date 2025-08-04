@@ -30,7 +30,7 @@ export const handler = defaultHandler(async (argv: Arguments<CheckOptions>) => {
 	const conf = config({
 		logLevel: argv.debug ? "debug" : argv.verbose ? "info" : "warn",
 		pathsToScan: argv.paths,
-		pathToConfigFile: argv.config,
+		pathToConfig: argv.config,
 		pathToBaseline: argv.pathBaseline,
 	});
 
