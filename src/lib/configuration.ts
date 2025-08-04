@@ -51,8 +51,6 @@ export type ConfigurationOptions = {
 	pathToConfig?: string;
 	pathToBaseline?: string;
 	logLevel?: LogLevel;
-	// pathToConfigFile?: string;
-	exclude?: string[];
 };
 
 export type Team = { name: string };
