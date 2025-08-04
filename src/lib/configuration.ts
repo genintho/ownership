@@ -111,6 +111,10 @@ function readConfigFile(pathToConfigFile?: string): StoredConfig {
 	const validatedConfig: StoredConfig = {};
 	for (const key of Object.keys(parsedConfig)) {
 		switch (key) {
+			case "exclude":
+			case "features":
+			case "teams":
+			case "version":
 			case "logLevel":
 				validatedConfig[key] = parsedConfig[key];
 				break;
